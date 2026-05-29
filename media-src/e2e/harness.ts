@@ -1,0 +1,24 @@
+import '../src/preload'
+import Vditor from 'vditor'
+import { fixTableIr } from '../src/fix-table-ir'
+import { dispatchTableHotkey, TableAction } from '../src/table-hotkey'
+
+// Minimal page that instantiates Vditor in IR mode with a known table and
+// wires fix-table-ir, mirroring how main.ts sets things up. Exposed globals
+// let the Playwright test drive and read the editor.
+const editor = new Vditor('app', {
+  cache: { enable: false },
+  mode: 'ir',
+  cdn: location.origin + '/vditor',
+  value: '| a | b |\n| - | - |\n| 1 | 2 |\n',
+  after() {
+    ;(window as any).vditor = editor
+    ;(window as any).vditorTest = editor
+    fixTableIr()
+    const isMac = navigator.platform.toLowerCase().includes('mac')
+    ;(window as any).__dispatchTableHotkey = (type: TableAction) =>
+      dispatchTableHotkey(editor.vditor.ir.element, type, isMac)
+    ;(window as any).__setValue = (md: string) => editor.setValue(md)
+    ;(window as any).__ready = true
+  },
+})
