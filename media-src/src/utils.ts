@@ -1,5 +1,4 @@
 import { keyboard } from '@testing-library/user-event/dist/keyboard'
-import $ from 'jquery'
 
 import _ from 'lodash'
 import Vditor from 'vditor'
@@ -59,19 +58,17 @@ export function fixDarkTheme() {
 }
 // panel hover 加定时延迟
 export function fixPanelHover() {
-  $('.vditor-panel').each((i, e) => {
-    let timer
-    $(e)
-      .on('mouseenter', (e) => {
-        timer && clearTimeout(timer)
-        e.currentTarget.classList.add('vditor-panel_hover')
-      })
-      .on('mouseleave', (e) => {
-        let el = e.currentTarget
-        timer = setTimeout(() => {
-          el.classList.remove('vditor-panel_hover')
-        }, 2000)
-      })
+  document.querySelectorAll<HTMLElement>('.vditor-panel').forEach((el) => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    el.addEventListener('mouseenter', () => {
+      timer && clearTimeout(timer)
+      el.classList.add('vditor-panel_hover')
+    })
+    el.addEventListener('mouseleave', () => {
+      timer = setTimeout(() => {
+        el.classList.remove('vditor-panel_hover')
+      }, 2000)
+    })
   })
 }
 // 文件转base64用于传输
@@ -99,10 +96,18 @@ export function saveVditorOptions() {
 }
 // toolbar 点击时保存配置
 export function handleToolbarClick() {
-  $('.vditor-toolbar').on('click', '.vditor-panel--left button, .vditor-panel--arrow button, .vditor-panel button', (e) => {
-    setTimeout(() => {
-      saveVditorOptions()
-    }, 500)
+  document.querySelectorAll('.vditor-toolbar').forEach((toolbar) => {
+    toolbar.addEventListener('click', (e) => {
+      if (
+        (e.target as HTMLElement).closest(
+          '.vditor-panel--left button, .vditor-panel--arrow button, .vditor-panel button'
+        )
+      ) {
+        setTimeout(() => {
+          saveVditorOptions()
+        }, 500)
+      }
+    })
   })
 }
 
