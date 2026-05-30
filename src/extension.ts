@@ -8,6 +8,17 @@ import {
   isWikiFile,
   resolveWikiLink,
 } from './wiki'
+import { formatPerf } from './perf-format'
+
+// Lazy 'vMarkd Perf' output channel for the profiling harness (tasks/42).
+// Created on the first `perf` message so it never appears unless profiling is on.
+let _perfChannel: vscode.OutputChannel | undefined
+function getPerfChannel(): vscode.OutputChannel {
+  if (!_perfChannel) {
+    _perfChannel = vscode.window.createOutputChannel('vMarkd Perf')
+  }
+  return _perfChannel
+}
 
 const KeyVditorOptions = 'vditor.options'
 const MarkdownEditorViewType = 'markdown-editor.editor'
@@ -407,6 +418,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
                   'codeBlockLineNumbers'
                 ),
                 showToolbar: MarkdownEditorProvider.config.get<boolean>('showToolbar'),
+                profiling: MarkdownEditorProvider.config.get<boolean>('profiling'),
                 ...this._context.globalState.get(KeyVditorOptions),
               },
               theme: currentThemeKind(),
@@ -417,6 +429,18 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           case 'save-options':
             await this._context.globalState.update(KeyVditorOptions, message.options)
             break
+          case 'perf': {
+            // Profiling harness (tasks/42): append the webview's aggregated
+            // timings to the 'vMarkd Perf' output channel, labelled by file.
+            getPerfChannel().appendLine(
+              formatPerf(
+                message.payload,
+                NodePath.basename(activeFsPath),
+                new Date().toLocaleTimeString()
+              )
+            )
+            break
+          }
           case 'info':
             vscode.window.showInformationMessage(message.content)
             break

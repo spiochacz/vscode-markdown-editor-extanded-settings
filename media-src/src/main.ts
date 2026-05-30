@@ -19,6 +19,7 @@ import { lang } from './lang'
 import { createToolbar } from './toolbar'
 import { fixTableIr } from './fix-table-ir'
 import { setupCustomRenderer } from './custom-renderer'
+import { profiler } from './perf'
 import './main.css'
 
 let applyingExtensionUpdate = false
@@ -38,6 +39,11 @@ function applyVditorTheme(theme: 'dark' | 'light') {
 
 function initVditor(msg) {
   console.log('msg', msg)
+  // Profiling harness (tasks/42) — enabled per the `profiling` setting. Must be
+  // set before `new Vditor` so the init span records.
+  profiler.setEnabled(msg.options?.profiling === true)
+  const docSize = typeof msg.content === 'string' ? msg.content.length : 0
+  const initToken = profiler.start()
   let inputTimer
   let defaultOptions: any = msg.cdn ? { cdn: msg.cdn } : {}
   if (msg.theme === 'dark') {
@@ -106,7 +112,9 @@ function initVditor(msg) {
       if (wikiEnabled && typeof msg.content === 'string' && msg.content.includes('[[')) {
         applyingExtensionUpdate = true
         try {
+          const t = profiler.start()
           vditor.setValue(msg.content)
+          profiler.end('setValue', t, msg.content.length)
         } finally {
           setTimeout(() => { applyingExtensionUpdate = false }, 0)
         }
@@ -116,6 +124,7 @@ function initVditor(msg) {
       fixTableIr()
       fixResponsiveTables()
       fixPanelHover()
+      profiler.end('init', initToken, docSize)
     },
     input() {
       if (applyingExtensionUpdate) {
@@ -123,7 +132,10 @@ function initVditor(msg) {
       }
       inputTimer && clearTimeout(inputTimer)
       inputTimer = setTimeout(() => {
-        vscode.postMessage({ command: 'edit', content: vditor.getValue() })
+        const t = profiler.start()
+        const content = vditor.getValue()
+        profiler.end('getValue', t, content.length)
+        vscode.postMessage({ command: 'edit', content })
       }, 250)
     },
     upload: {
@@ -184,7 +196,9 @@ window.addEventListener('message', (e) => {
         if (vditor.getValue() !== msg.content) {
           applyingExtensionUpdate = true
           try {
+            const t = profiler.start()
             vditor.setValue(msg.content)
+            profiler.end('setValue', t, msg.content.length)
           } finally {
             setTimeout(() => {
               applyingExtensionUpdate = false
