@@ -33,6 +33,7 @@ This fork is packaged independently. Install the generated VSIX directly:
 
 ```bash
 code --install-extension ./artifacts/markdown-editor-extended-settings-0.2.32.vsix
+
 ```
 
 ## Usage
