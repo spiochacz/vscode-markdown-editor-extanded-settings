@@ -1,44 +1,29 @@
-# Markdown Editor — Extended Settings
+# Visual Markdown Editor (vMark)
 
-Standalone fork of [zaaack/vscode-markdown-editor](https://github.com/zaaack/vscode-markdown-editor) with a substantially expanded feature set, updated bundled editor runtime, and fork-specific workflow improvements.
+A standalone fork of [zaaack/vscode-markdown-editor](https://github.com/zaaack/vscode-markdown-editor), substantially extended with new VS Code integration and editor-customisation features.
 
-Original project: https://github.com/zaaack/vscode-markdown-editor
+> 🚧 **Under active development.** The feature set is growing; some planned features are still on the roadmap rather than shipped.
 
 ## Demo
 
 ![demo](./media/hero.png)
 
-## What This Fork Adds
-
-This fork keeps the original custom Markdown editor workflow, then extends it with practical VS Code integration and editor customisation features that are not described in the upstream README.
-
-- **Mermaid diagrams**: Added Mermaid diagrams render directly inside the custom editor.
-- **Live sync**: Changes stay in sync with the underlying Markdown file while you edit.
-- **Return to text editor**: You can jump back to the normal VS Code text editor from the toolbar or command palette.
-- **Remembered editor preferences**: The editor keeps your preferred layout and UI options, and includes a reset action when you want to start fresh.
-- **Layout and theme control**: The editor can follow the active VS Code theme, switch to a full-width layout, and accept custom CSS overrides.
-- **Configurable image saving**: Uploaded, pasted, or dropped images can be saved to a configurable folder.
-- **Extended toolbar actions**: The toolbar adds copy Markdown, copy HTML, and improved link insertion actions.
-- **VS Code link handling**: Links opened from the editor are handed off through VS Code.
-- **Wiki links for wiki folders**: Markdown files inside a `wiki` folder recognise `[[page-name]]` links and resolve them to other wiki pages.
-- **IR table controls**: IR mode includes extra table editing controls.
-- **Responsive tables**: Tables now stretch with the width of the hosting editor window instead of staying at a fixed width.
-
 ## Features
 
-- WYSIWYG Markdown editing with Vditor
-- Multiple editing modes: IR, WYSIWYG, and split-view/source-oriented workflows provided by Vditor
-- Auto-sync with the underlying Markdown file when either side changes
+- WYSIWYG Markdown editing with Vditor, in IR, WYSIWYG, and split-view modes
+- Live two-way sync with the underlying Markdown file as either side changes
 - Save directly from the editor toolbar
 - Copy rendered HTML or raw Markdown from the editor
-- Uploaded, pasted, or drag-dropped images are written to disk automatically
-- Mermaid, KaTeX, Graphviz, ECharts, abc.js, and other Vditor-supported embedded content
-- Offline/local runtime assets for the webview editor, including Mermaid support
-- Responsive table layout that follows the current editor width
+- Configurable image saving: uploaded, pasted, or drag-dropped images are written to a configurable folder
+- Mermaid, KaTeX, Graphviz, ECharts, abc.js, and other Vditor-supported embedded content (with offline/local runtime assets)
+- Layout and theme control: follow the active VS Code theme, switch to a full-width layout, and inject custom CSS
+- Remembered editor preferences, with a reset action to start fresh
+- Extended toolbar actions: copy Markdown, copy HTML, and smarter link insertion
+- Responsive tables that follow the current editor width
+- Extra table-editing controls in IR mode
+- Links opened from the editor are handed off through VS Code
 - Explorer and editor-tab context menu integration
-- Wiki page detection with a toolbar wiki button inside the custom editor for Markdown files inside a `wiki` folder
-- Wiki-style `[[page-name]]` links that open other Markdown pages from the same wiki tree
-- Keyboard shortcuts for opening the custom editor and returning to the text editor
+- Keyboard shortcut for returning to the VS Code text editor (`Ctrl+Alt+E` / `Cmd+Ctrl+E`)
 
 For the broader editing/rendering feature set exposed by Vditor, see [vditor](https://github.com/Vanessa219/vditor).
 
@@ -47,36 +32,22 @@ For the broader editing/rendering feature set exposed by Vditor, see [vditor](ht
 This fork is packaged independently. Install the generated VSIX directly:
 
 ```bash
-code --install-extension ./artifacts/markdown-editor-extended-settings-0.2.35.vsix
-
+code --install-extension ./artifacts/markdown-editor-extended-settings-0.2.32.vsix
 ```
 
 ## Usage
 
 ### Open the custom editor
 
-Use the Explorer right-click context menu on a Markdown file:
+- **Explorer**: right-click a Markdown file → **Open with markdown editor**.
+- **Open editor tab**: from a `.md` file, run **Open with…** and pick the markdown editor.
+- **Command Palette**: run `markdown-editor: Open with markdown editor`.
 
-- Explorer context menu on a Markdown file
+### Return to the plain text editor
 
-Markdown files no longer auto-switch into the custom editor when opened normally.
-
-### Return to the text editor
-
-Use any of the following while the custom editor is active:
-
-- Command Palette: `markdown-editor: Edit in Text Editor`
-- Editor tab title menu
-- Shortcut: `Ctrl+Alt+E` on Windows/Linux, `Cmd+Ctrl+E` on macOS
-- Toolbar button inside the custom editor
-
-### Wiki links
-
-Markdown files located anywhere under a folder named `wiki` are treated as wiki pages.
-
-- The custom editor toolbar shows a `Wiki` button for recognised wiki files.
-- `[[page-name]]` links are rendered as clickable wiki chips inside the custom editor.
-- Wiki links resolve against Markdown files under the same `wiki` folder tree.
+- Click **Edit In VS Code** in the editor toolbar, or
+- press `Ctrl+Alt+E` (`Cmd+Ctrl+E` on macOS), or
+- run `markdown-editor: Edit in Text Editor` from the Command Palette.
 
 ## Configuration
 
