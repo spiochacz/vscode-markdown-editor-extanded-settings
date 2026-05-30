@@ -7,11 +7,15 @@
 > **Status (2026-05-30):** ✅ manifest identity set — `name: vmarkd`,
 > `displayName: vMarkd — Visual Markdown Editor`, `publisher: spiochacz`,
 > `author: Sławomir Piochacz`, `repository.url →
-> github.com/spiochacz/vmarkd-visual-markdown-editor`. `viewType` / command ids
-> left unchanged (internal). **Remaining before publish:** register/login the
-> `spiochacz` Marketplace publisher (`vsce login spiochacz`), and align the VSIX
-> filename convention (release tooling still hardcodes
-> `markdown-editor-extended-settings-<ver>.vsix` — see below).
+> github.com/spiochacz/vmarkd-visual-markdown-editor`, `version → 0.3.0`.
+> `viewType` / command ids left unchanged (internal). VSIX filename convention
+> aligned to `vmarkd-<ver>.vsix` across the release tooling (`release-marketplace.sh`,
+> `republish.md`, `copilot-instructions.md`, `README.md`).
+> **Remaining before publish:** (a) register/login the `spiochacz` Marketplace
+> publisher (`vsce login spiochacz`); (b) the release tooling still pulls/pushes
+> `origin master` but the default branch is `main` — fix `master → main` in
+> `scripts/release-marketplace.sh` + `republish.md` + `copilot-instructions.md`
+> (release-process cleanup, → task 24); (c) security tasks 18/27.
 
 ## Problem
 `package.json` still carries the **original author's** identity — you cannot publish

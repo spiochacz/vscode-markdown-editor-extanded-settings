@@ -3,7 +3,7 @@
   "displayName": "vMarkd — Visual Markdown Editor",
   "icon": "media/logo.png",
   "description": "A full-featured WYSIWYG editor for markdown.",
-  "version": "0.2.32",
+  "version": "0.3.0",
   "publisher": "spiochacz",
   "author": "Sławomir Piochacz",
   "license": "MIT",

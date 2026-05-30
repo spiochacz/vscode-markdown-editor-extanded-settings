@@ -17,7 +17,7 @@ When asked to publish or update the extension on the Marketplace, follow this wo
    - bumps the patch version in aligned package files
    - updates the `README.md` install example to the new VSIX version
    - rebuilds the extension assets
-   - packages `artifacts/markdown-editor-extended-settings-[version].vsix`
+   - packages `artifacts/vmarkd-[version].vsix`
    - loads `VSCE_PAT` from `.env` automatically and publishes with `@vscode/vsce`
    - pushes `master` and the new tag to GitHub
 4. **GitHub Actions Automation**: `publish.yml` is the automatic Marketplace workflow for `v*` tags. Keep `main.yml` as a manual fallback only.

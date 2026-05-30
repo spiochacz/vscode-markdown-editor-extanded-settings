@@ -24,7 +24,7 @@ Re-bundle the assets and generate the VSIX package:
 npx foy build
 
 # Create the production VSIX artifact
-npx vsce package --out artifacts/markdown-editor-extended-settings-$(node -p "require('./package.json').version").vsix
+npx vsce package --out artifacts/vmarkd-$(node -p "require('./package.json').version").vsix
 ```
 
 ### 4. Direct Marketplace Publication
