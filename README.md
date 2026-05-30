@@ -1,4 +1,4 @@
-# Visual Markdown Editor (vMark)
+# Visual Markdown Editor (vMarkd)
 
 A standalone fork of [zaaack/vscode-markdown-editor](https://github.com/zaaack/vscode-markdown-editor), substantially extended with new VS Code integration and editor-customisation features.
 
