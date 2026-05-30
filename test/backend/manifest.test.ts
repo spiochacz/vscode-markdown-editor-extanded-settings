@@ -108,7 +108,7 @@ describe('package.json manifest', () => {
     const props = pkg.contributes.configuration.properties
     expect(props['markdown-editor.wordCount']).toMatchObject({
       type: 'boolean',
-      default: true,
+      default: false,
     })
     expect(props['markdown-editor.codeBlockLineNumbers']).toMatchObject({
       type: 'boolean',

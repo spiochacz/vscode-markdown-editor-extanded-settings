@@ -67,7 +67,8 @@ function initVditor(msg) {
     value: msg.content,
     mode: 'ir',
     cache: { enable: false },
-    counter: { enable: msg.options?.wordCount !== false },
+    // Opt-in: the counter recomputes on every keystroke (perf cost on large docs).
+    counter: { enable: msg.options?.wordCount === true },
     toolbar:
       msg.options?.showToolbar === false
         ? []

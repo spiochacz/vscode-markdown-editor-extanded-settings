@@ -144,13 +144,13 @@
         },
         "markdown-editor.wordCount": {
           "type": "boolean",
-          "default": true,
-          "description": "Show a live word/character count in the editor."
+          "default": false,
+          "description": "Show a live word/character count. Off by default — the count recomputes on every keystroke, which can be costly in large documents."
         },
         "markdown-editor.codeBlockLineNumbers": {
           "type": "boolean",
           "default": false,
-          "description": "Show line numbers in fenced code blocks (rendered preview)."
+          "description": "Show line numbers in fenced code blocks (rendered preview). Off by default — adds a line-number gutter per code block."
         },
         "markdown-editor.showToolbar": {
           "type": "boolean",
