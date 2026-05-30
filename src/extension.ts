@@ -655,15 +655,26 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
     const CssFiles = ['main.css'].map(toMediaPath).map(toUri)
     const iconScript = toUri('media/vditor/dist/js/icons/ant.js')
 
+    // Lute preload prototype (tasks/42). When enabled, the webview synchronously
+    // evaluates the 3.8 MB Lute bundle right after posting `ready`, overlapping
+    // its cost with the host roundtrip so `new Vditor` constructs warm.
+    const preloadLute = MarkdownEditorProvider.config.get<boolean>('preloadLute')
+    const luteUri = toUri('media/vditor/dist/js/lute/lute.min.js').toString()
+    const preloadScript = preloadLute
+      ? `<script>window.__vditorLutePreload=${JSON.stringify(luteUri)}</script>`
+      : ''
+
     return (
       `<!DOCTYPE html>
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
+				<script>window.__openT0=performance.now()</script>
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<base href="${baseHref}" />
 
+				${preloadScript}
 
 				${CssFiles.map((f) => `<link href="${f}" rel="stylesheet">`).join('\n')}
 

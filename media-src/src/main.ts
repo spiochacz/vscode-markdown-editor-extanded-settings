@@ -132,6 +132,14 @@ function initVditor(msg) {
       fixPanelHover()
       profiler.end('init.after', afterToken, docSize)
       profiler.end('init', initToken, docSize)
+      // True end-to-end open: page-script start (window.__openT0, set by the
+      // first inline script in the webview HTML) -> editor ready. Captures icon
+      // + main.js eval, the ready roundtrip, any Lute preload, and construct —
+      // the number to compare with/without `preloadLute`.
+      const openT0 = (window as any).__openT0
+      if (typeof openT0 === 'number') {
+        profiler.end('open.total', openT0, docSize)
+      }
     },
     input() {
       if (applyingExtensionUpdate) {
@@ -261,4 +269,35 @@ window.addEventListener('keydown', (event) => {
   }
 })
 
+// Lute preload prototype (tasks/42). Vditor lazily loads the 3.8 MB GopherJS
+// Lute bundle inside `new Vditor` — ~95% of the ~650 ms init.construct cost,
+// and it sits idle-blocked behind the `ready` roundtrip. Here we post `ready`
+// first (so the host starts preparing the init reply on its own process), then
+// synchronously eval Lute so its cost overlaps that roundtrip. Vditor's
+// addScript dedupes on the `vditorLuteScript` element id, so it then reuses our
+// resident Lute and constructs warm (~13 ms). Gated by the `preloadLute`
+// setting; the extension embeds the URL as `window.__vditorLutePreload`.
+function maybePreloadLute() {
+  const url = (window as any).__vditorLutePreload
+  if (!url || document.getElementById('vditorLuteScript')) {
+    return
+  }
+  try {
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', url, false) // sync: eval must finish before init is handled
+    xhr.send('')
+    if (xhr.status >= 400) {
+      return
+    }
+    const script = document.createElement('script')
+    script.type = 'text/javascript'
+    script.text = xhr.responseText
+    script.id = 'vditorLuteScript'
+    document.head.appendChild(script) // evaluates synchronously here
+  } catch (e) {
+    console.warn('lute preload failed', e)
+  }
+}
+
 vscode.postMessage({ command: 'ready' })
+maybePreloadLute()

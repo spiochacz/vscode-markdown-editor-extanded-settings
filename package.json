@@ -3,7 +3,7 @@
   "displayName": "vMarkd — Visual Markdown Editor",
   "icon": "media/logo.png",
   "description": "vMarkd — a full-featured visual markdown editor.",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "publisher": "spiochacz",
   "author": "Sławomir Piochacz",
   "license": "MIT",
@@ -166,6 +166,11 @@
           "type": "boolean",
           "default": false,
           "description": "Developer: collect rendering performance timings (init, getValue, setValue, renderText) into the 'vMarkd Perf' output channel. Off by default; intended for diagnosing render bottlenecks."
+        },
+        "markdown-editor.preloadLute": {
+          "type": "boolean",
+          "default": false,
+          "description": "Developer (experimental): preload the Lute parser as soon as the editor opens, overlapping its load with the editor startup roundtrip. May reduce open latency on the first file. Compare with the 'profiling' open.total timing on/off."
         }
       }
     },
