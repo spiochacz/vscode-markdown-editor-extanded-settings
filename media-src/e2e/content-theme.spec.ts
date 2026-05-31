@@ -27,3 +27,22 @@ test('setTheme with an explicit path swaps the content-theme stylesheet', async 
   expect(result.light).toContain('/content-theme/light.css')
   expect(result.dark).toContain('/content-theme/dark.css')
 })
+
+// Tables/code follow the VS Code theme colours (not Vditor's fixed content-theme
+// palette) when use-vscode-theme-color is on — so content matches a custom theme.
+test('table background follows --vscode-editor-background when the option is on', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.waitForFunction(() => (window as any).__ready === true)
+  const bg = await page.evaluate(() => {
+    document.documentElement.style.setProperty(
+      '--vscode-editor-background',
+      'rgb(50, 0, 0)'
+    )
+    document.body.setAttribute('data-use-vscode-theme-color', '1')
+    const tr = document.querySelector('.vditor-reset table tr') as HTMLElement
+    return tr ? getComputedStyle(tr).backgroundColor : null
+  })
+  expect(bg).toBe('rgb(50, 0, 0)') // the sentinel VS Code colour, not #2f363d
+})
