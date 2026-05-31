@@ -19,6 +19,20 @@ body[data-use-vscode-theme-color="1"] .vditor {
   --border-color: var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
   --resize-icon-color: var(--vscode-editor-foreground, #586069);
 }
+/* Keep the whole editor background = the VS Code editor background on every
+   layer + the body, so it stays consistent whether or not the editor has focus.
+   Vditor's wrapper layers (.vditor/.vditor-content/.vditor-ir/.vditor-reset) are
+   transparent, so otherwise the body's (lighter) bg shows through when unfocused
+   while the focused editable shows the darker --textarea-background-color. */
+body[data-use-vscode-theme-color="1"],
+body[data-use-vscode-theme-color="1"] .vditor,
+body[data-use-vscode-theme-color="1"] .vditor-content,
+body[data-use-vscode-theme-color="1"] .vditor-ir,
+body[data-use-vscode-theme-color="1"] .vditor-sv,
+body[data-use-vscode-theme-color="1"] .vditor-wysiwyg,
+body[data-use-vscode-theme-color="1"] .vditor-reset {
+  background-color: var(--vscode-editor-background) !important;
+}
 /* When Vditor is in dark mode, use light fallback colors for toolbar icons */
 body[data-use-vscode-theme-color="1"] .vditor.vditor--dark {
   --toolbar-icon-color: var(--vscode-editor-foreground, #b9b9b9);
