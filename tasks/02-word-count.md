@@ -1,5 +1,6 @@
 # Task: Word count (Vditor counter)
 
+> **Status:** ✅ Done.
 > **Source:** `Inferno214221/vscode-markdown-editor` — quick-fixes §1
 > **Derived from (removed plan):** `quick-fixes-and-hardening-plan.md`
 > **Value / Risk:** 🟢 trivial / none (pure Vditor option)

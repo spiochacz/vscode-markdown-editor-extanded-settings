@@ -1,5 +1,6 @@
 # Task: ThemeIcon on the editor tab
 
+> **Status:** ✅ Done.
 > **Source:** vMark VS Code stable-API audit (`ThemeIcon` tab icon)
 > **Value / Risk:** 🟡 small polish / low
 > **Engines:** ⚠️ `^1.110` — `ThemeIcon` as a custom-editor `webviewPanel.iconPath`

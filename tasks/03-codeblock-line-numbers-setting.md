@@ -1,5 +1,6 @@
 # Task: Code-block line numbers (configurable)
 
+> **Status:** ✅ Done.
 > **Source:** `vincent-zheng/vscode-markdown-editor` — hard-coded `preview.hljs.lineNumber: true`
 > **Derived from (removed plan):** `rename-tracking-and-line-numbers-plan.md` Part A
 > **Value / Risk:** 🟢 low / low (purely additive)

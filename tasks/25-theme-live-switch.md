@@ -1,5 +1,6 @@
 # Task: Live theme switching (follow VS Code color theme)
 
+> **Status:** ✅ Done.
 > **Source:** vMark VS Code stable-API audit (live theme follow via `--vscode-*` CSS vars)
 > **Value / Risk:** 🟢 fixes a real UX bug / low
 

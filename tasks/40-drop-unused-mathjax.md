@@ -1,5 +1,6 @@
 # Task: Drop unused MathJax assets (~6.5 MB)
 
+> **Status:** ✅ Done.
 > **Source:** vMark performance audit — VSIX size (Vditor defaults to KaTeX, MathJax unused)
 > **Value / Risk:** 🟧 ~6.5 MB install-size cut (biggest single asset win) / low —
 > only while no MathJax engine is offered

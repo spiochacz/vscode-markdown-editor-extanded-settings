@@ -1,5 +1,6 @@
 # Task: Perf — raise debounce + drop onLanguage activation
 
+> **Status:** ✅ Done.
 > **Source:** `masterofarbs-audiodub/better-markdown-editor` — §3
 > **Derived from (removed plan):** `better-markdown-editor-port-plan.md`
 > **Value / Risk:** 🟡 medium / low

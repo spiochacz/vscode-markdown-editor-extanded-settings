@@ -1,8 +1,3 @@
-When working in this repository, treat VSIX packaging as a release step.
+When finishing implementation, always update task status inside the relevant `tasks/` file: tick checklist items that were implemented and flag what isn't ready yet. The task file is the single source of truth for status.
 
-- If asked to create, build, or package a VSIX for this extension, always bump the extension version first before packaging.
-- Update every repository version source that must stay aligned, including `package.json` and `package-lock.json` when both exist.
-- After the version bump, build the project, then create the VSIX artifact for the new version.
-- Never overwrite, replace, rename, or delete an existing `.vsix` artifact in `artifacts/` as part of packaging. Always create a new versioned VSIX file alongside the existing ones.
-- If the user explicitly asks for a package without mentioning versioning, still perform the version bump before packaging unless they explicitly forbid changing the version.
-- For Marketplace publishing, prefer the persisted PAT from `.env` (`VSCE_PAT`) and keep the GitHub Actions secrets `VSCE_PAT` and `VS_MARKETPLACE_TOKEN` in sync so the user is not prompted again.
+`tasks/README.md` is an informative index, not a status tracker — do not record partial or in-progress status there. Only update `tasks/README.md` when a task is fully complete, to mark it done.

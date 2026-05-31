@@ -1,5 +1,6 @@
 # Task: Search Ctrl+F / Cmd+F keybinding
 
+> **Status:** ✅ Done.
 > **Source:** `masterofarbs-audiodub/better-markdown-editor` — §1
 > **Derived from (removed plan):** `better-markdown-editor-port-plan.md`
 > **Value / Risk:** 🟢 high / none (pure manifest change, no rebuild)

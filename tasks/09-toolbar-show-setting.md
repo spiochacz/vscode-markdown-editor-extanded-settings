@@ -1,5 +1,6 @@
 # Task: Toolbar hide setting (showToolbar)
 
+> **Status:** ✅ Done.
 > **Source:** `aqz236/vscode-markdown-editor` — §4a
 > **Derived from (removed plan):** `aqz236-port-plan.md`
 > **Value / Risk:** 🟡 low / low (optional)

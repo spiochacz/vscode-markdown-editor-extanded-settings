@@ -1,5 +1,6 @@
 # Task: Rename tracking (onDidRenameFiles)
 
+> **Status:** ✅ Done.
 > **Source:** `vincent-zheng/vscode-markdown-editor`, commit `b5721dbb` (adapted to
 > our `CustomTextEditorProvider`)
 > **Derived from (removed plan):** `rename-tracking-and-line-numbers-plan.md` Part B

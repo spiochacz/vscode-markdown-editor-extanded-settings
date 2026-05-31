@@ -1,5 +1,6 @@
 # Task: Declare extension capabilities (untrusted / virtual workspaces)
 
+> **Status:** ✅ Done.
 > **Source:** vMark VS Code stable-API audit (workspace capabilities)
 > **Value / Risk:** 🟢 Marketplace professionalism + predictable behavior / low
 > **Engines:** none (old contribution point)

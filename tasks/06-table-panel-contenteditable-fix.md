@@ -1,5 +1,6 @@
 # Task: Table-panel fix — contentEditable=false + userSelect=none
 
+> **Status:** ✅ Done.
 > **Source:** `Inferno214221/vscode-markdown-editor` — quick-fixes §3
 > **Derived from (removed plan):** `quick-fixes-and-hardening-plan.md`
 > **Value / Risk:** 🟢 deeper fix / low
