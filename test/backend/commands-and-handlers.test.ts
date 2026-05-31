@@ -72,6 +72,19 @@ describe('command: markdown-editor.openTextEditor', () => {
   })
 })
 
+describe('command: markdown-editor.openSettings', () => {
+  beforeEach(() => mock.reset())
+
+  it('opens the Settings UI filtered to this extension', async () => {
+    const openSettings = activateAndGetCommand('markdown-editor.openSettings')
+    await openSettings()
+    expect(mock.calls.executeCommand).toContainEqual({
+      command: 'workbench.action.openSettings',
+      args: ['@ext:spiochacz.vmarkd'],
+    })
+  })
+})
+
 function resolveProvider(fsPath = '/workspace/note.md', text = '# doc\n') {
   mock.setWorkspaceFolder('/workspace')
   const context = mock.createExtensionContext()

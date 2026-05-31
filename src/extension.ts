@@ -150,6 +150,13 @@ export function activate(context: vscode.ExtensionContext) {
         await vscode.commands.executeCommand('vscode.openWith', target, 'default')
       }
     ),
+    vscode.commands.registerCommand('markdown-editor.openSettings', async () => {
+      // Open the Settings UI filtered to this extension's options.
+      await vscode.commands.executeCommand(
+        'workbench.action.openSettings',
+        '@ext:spiochacz.vmarkd'
+      )
+    }),
     vscode.window.registerCustomEditorProvider(
       MarkdownEditorViewType,
       new MarkdownEditorProvider(context),

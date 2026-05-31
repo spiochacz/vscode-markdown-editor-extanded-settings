@@ -64,6 +64,12 @@
           "light": "media/open-editor-light.svg",
           "dark": "media/open-editor-dark.svg"
         }
+      },
+      {
+        "command": "markdown-editor.openSettings",
+        "title": "Open vMarkd Settings",
+        "category": "markdown-editor",
+        "icon": "$(settings-gear)"
       }
     ],
     "customEditors": [
@@ -104,12 +110,22 @@
           "when": "!isInDiffEditor && activeCustomEditorId != markdown-editor.editor && (resourceExtname == .md || resourceExtname == .markdown) && (resourceScheme == file || resourceScheme == untitled)",
           "command": "markdown-editor.openEditor",
           "group": "navigation@10"
+        },
+        {
+          "when": "activeCustomEditorId == markdown-editor.editor",
+          "command": "markdown-editor.openSettings",
+          "group": "navigation@20"
         }
       ],
       "editor/title/context": [
         {
           "when": "activeCustomEditorId == markdown-editor.editor",
           "command": "markdown-editor.openTextEditor",
+          "group": "1_open"
+        },
+        {
+          "when": "activeCustomEditorId == markdown-editor.editor",
+          "command": "markdown-editor.openSettings",
           "group": "1_open"
         }
       ],

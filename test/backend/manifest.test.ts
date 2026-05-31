@@ -53,6 +53,20 @@ describe('package.json manifest', () => {
     )
   })
 
+  it('contributes an Open-Settings command shown in the editor title for the custom editor', () => {
+    const cmd = pkg.contributes.commands.find(
+      (c: any) => c.command === 'markdown-editor.openSettings'
+    )
+    expect(cmd).toBeDefined()
+    expect(cmd.icon).toBe('$(settings-gear)')
+    const inTitle = pkg.contributes.menus['editor/title'].some(
+      (m: any) =>
+        m.command === 'markdown-editor.openSettings' &&
+        m.when === `activeCustomEditorId == ${VIEW_TYPE}`
+    )
+    expect(inTitle).toBe(true)
+  })
+
   it('binds the "edit in text editor" keybinding scoped to the custom editor', () => {
     const binding = pkg.contributes.keybindings.find(
       (k: any) => k.command === 'markdown-editor.openTextEditor'
