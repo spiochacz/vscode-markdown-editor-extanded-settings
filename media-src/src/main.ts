@@ -22,6 +22,7 @@ import { setupCustomRenderer } from './custom-renderer'
 import { setupOutlineFlash } from './outline'
 import { applyBodyOptions, swapStyle, initOnlyChanged } from './live-config'
 import { applyMermaidTheme } from './mermaid-theme'
+import { setupHistoryKeybind } from './undo-keybind'
 import './main.css'
 
 let applyingExtensionUpdate = false
@@ -291,5 +292,9 @@ window.addEventListener('keydown', (event) => {
     vscode.postMessage({ command: 'edit-in-vscode' })
   }
 })
+
+// Route Ctrl/Cmd+Z·Y to Vditor's own undo engine instead of the browser/VS Code
+// document undo — see undo-keybind.ts for the full rationale.
+setupHistoryKeybind(window)
 
 vscode.postMessage({ command: 'ready' })
