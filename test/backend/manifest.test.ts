@@ -123,4 +123,29 @@ describe('package.json manifest', () => {
       default: true,
     })
   })
+
+  it('declares the outline settings (highlightHeadings, outlinePosition/Width, showOutlineByDefault, outlineHighlight)', () => {
+    const props = pkg.contributes.configuration.properties
+    expect(props['markdown-editor.highlightHeadings']).toMatchObject({
+      type: 'boolean',
+      default: false,
+    })
+    expect(props['markdown-editor.outlinePosition']).toMatchObject({
+      type: 'string',
+      enum: ['left', 'right'],
+      default: 'right',
+    })
+    expect(props['markdown-editor.outlineWidth']).toMatchObject({
+      type: 'number',
+      default: 200,
+    })
+    expect(props['markdown-editor.showOutlineByDefault']).toMatchObject({
+      type: 'boolean',
+      default: false,
+    })
+    expect(props['markdown-editor.outlineHighlight']).toMatchObject({
+      type: 'boolean',
+      default: true,
+    })
+  })
 })

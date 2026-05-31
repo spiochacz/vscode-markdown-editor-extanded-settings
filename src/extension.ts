@@ -407,6 +407,19 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
                   'codeBlockLineNumbers'
                 ),
                 showToolbar: MarkdownEditorProvider.config.get<boolean>('showToolbar'),
+                highlightHeadings: MarkdownEditorProvider.config.get<boolean>(
+                  'highlightHeadings'
+                ),
+                outlinePosition: MarkdownEditorProvider.config.get<string>(
+                  'outlinePosition'
+                ),
+                outlineWidth: MarkdownEditorProvider.config.get<number>('outlineWidth'),
+                showOutlineByDefault: MarkdownEditorProvider.config.get<boolean>(
+                  'showOutlineByDefault'
+                ),
+                outlineHighlight: MarkdownEditorProvider.config.get<boolean>(
+                  'outlineHighlight'
+                ),
                 ...this._context.globalState.get(KeyVditorOptions),
               },
               theme: currentThemeKind(),

@@ -204,6 +204,41 @@ body[data-full-width="1"] .vditor-ir .vditor-reset {
   padding-bottom: 9.9px;
 }
 
+/* Heading highlight (task 07): themed background on h1–h6 for easier scanning. */
+body[data-highlight-headings="1"] .vditor-reset h1,
+body[data-highlight-headings="1"] .vditor-reset h2,
+body[data-highlight-headings="1"] .vditor-reset h3,
+body[data-highlight-headings="1"] .vditor-reset h4,
+body[data-highlight-headings="1"] .vditor-reset h5,
+body[data-highlight-headings="1"] .vditor-reset h6 {
+  background: var(--vscode-textBlockQuote-background);
+  padding: 0 0.3em;
+  border-radius: 3px;
+}
+
+/* Outline panel width (task 08): driven by the --me-outline-width var that
+   main.ts sets from the setting. No !important, so a future drag-resize (inline
+   width) still wins. */
+.vditor-outline {
+  width: var(--me-outline-width, 200px);
+}
+
+/* Outline navigation flash (task 13): brief highlight on the clicked heading. */
+.heading-flash {
+  animation: heading-flash 1.4s ease-out;
+}
+@keyframes heading-flash {
+  0% {
+    background-color: var(
+      --vscode-editor-findMatchHighlightBackground,
+      rgba(255, 213, 0, 0.4)
+    );
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 body[data-full-width="1"] .vditor-preview .vditor-reset {
   max-width: none !important;
   width: 100% !important;

@@ -75,6 +75,25 @@ describe('resolveCustomTextEditor — init handshake', () => {
     await panel._receiveMessage({ command: 'ready' })
     expect(lastUpdate().theme).toBe('light')
   })
+
+  it('passes the outline settings into the init options', async () => {
+    mock.setConfig({
+      highlightHeadings: true,
+      outlinePosition: 'left',
+      outlineWidth: 320,
+      showOutlineByDefault: true,
+      outlineHighlight: false,
+    })
+    const { panel } = resolveProvider()
+    await panel._receiveMessage({ command: 'ready' })
+    expect(lastUpdate().options).toMatchObject({
+      highlightHeadings: true,
+      outlinePosition: 'left',
+      outlineWidth: 320,
+      showOutlineByDefault: true,
+      outlineHighlight: false,
+    })
+  })
 })
 
 describe('resolveCustomTextEditor — webview → editor sync', () => {

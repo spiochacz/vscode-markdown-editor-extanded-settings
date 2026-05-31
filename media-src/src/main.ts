@@ -19,6 +19,7 @@ import { lang } from './lang'
 import { createToolbar } from './toolbar'
 import { fixTableIr } from './fix-table-ir'
 import { setupCustomRenderer } from './custom-renderer'
+import { setupOutlineFlash } from './outline'
 import './main.css'
 
 let applyingExtensionUpdate = false
@@ -78,6 +79,13 @@ function initVditor(msg) {
       preview: { hljs: { lineNumber: true } },
     })
   }
+  // Outline panel: open-by-default + side (tasks 07/08). Default position right.
+  defaultOptions = deepMerge(defaultOptions, {
+    outline: {
+      enable: msg.options?.showOutlineByDefault === true,
+      position: msg.options?.outlinePosition === 'left' ? 'left' : 'right',
+    },
+  })
   if (window.vditor) {
     vditor.destroy()
     window.vditor = null
@@ -126,6 +134,9 @@ function initVditor(msg) {
       fixTableIr()
       fixResponsiveTables()
       fixPanelHover()
+      if (msg.options?.outlineHighlight !== false) {
+        setupOutlineFlash(window.vditor)
+      }
     },
     input() {
       if (applyingExtensionUpdate) {
@@ -180,6 +191,17 @@ window.addEventListener('message', (e) => {
           document.body.setAttribute('data-full-width', '1')
         } else {
           document.body.setAttribute('data-full-width', '0')
+        }
+
+        document.body.setAttribute(
+          'data-highlight-headings',
+          msg.options && msg.options.highlightHeadings ? '1' : '0'
+        )
+        if (msg.options && msg.options.outlineWidth) {
+          document.body.style.setProperty(
+            '--me-outline-width',
+            `${msg.options.outlineWidth}px`
+          )
         }
         try {
           initVditor(msg)

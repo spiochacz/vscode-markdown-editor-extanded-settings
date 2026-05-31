@@ -161,6 +161,32 @@
           "type": "boolean",
           "default": true,
           "description": "Keep hidden editor tabs alive for instant switching. Turn off to free memory when many tabs are open (each hidden editor is fully retained), at the cost of a reload when you switch back. Changing this requires reloading the window."
+        },
+        "markdown-editor.highlightHeadings": {
+          "type": "boolean",
+          "default": false,
+          "description": "Apply a themed background to headings (h1–h6) for easier scanning."
+        },
+        "markdown-editor.outlinePosition": {
+          "type": "string",
+          "enum": ["left", "right"],
+          "default": "right",
+          "description": "Which side the outline panel opens on."
+        },
+        "markdown-editor.outlineWidth": {
+          "type": "number",
+          "default": 200,
+          "description": "Width of the outline panel, in pixels."
+        },
+        "markdown-editor.showOutlineByDefault": {
+          "type": "boolean",
+          "default": false,
+          "description": "Open the outline panel automatically when an editor opens."
+        },
+        "markdown-editor.outlineHighlight": {
+          "type": "boolean",
+          "default": true,
+          "description": "Briefly flash a heading when you click it in the outline."
         }
       }
     },
