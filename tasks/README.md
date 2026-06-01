@@ -26,13 +26,14 @@ checked here **only when the task is fully complete**.
 - [x] [12 — External CSS files + live reload](12-external-css-live-reload.md)
 - [x] [25 — Live theme switching (follow VS Code theme)](25-theme-live-switch.md)
 - [x] [26 — Live config reload (onDidChangeConfiguration)](26-live-config-reload.md) — pairs with 12
+- [ ] [44 — Unify the "open source" button icons](44-unify-source-button-icons.md) — toolbar SVG → match the title-bar `go-to-file` codicon
 
 ## Features
 - [x] [13 — Outline navigation + heading flash](13-outline-heading-flash.md)
 - [x] [14 — Rename tracking (onDidRenameFiles)](14-rename-tracking.md)
-- [ ] [15 — Shared DOM→source mapping](15-shared-dom-source-mapping.md) — prerequisite for 16 & 17
-- [ ] [16 — Reveal-in-Source](16-reveal-in-source.md) — needs 15
-- [ ] [17 — Git gutters](17-git-gutters.md) — needs 15
+- [x] [15 — Shared DOM→source mapping](15-shared-dom-source-mapping.md) — exact Lute-caret offset (prose too); prerequisite for 16 & 17
+- [x] [16 — Reveal-in-Source](16-reveal-in-source.md) — jump to the caret's line in the text editor
+- [x] [17 — Git gutters](17-git-gutters.md) — added/modified bars vs git HEAD
 - [ ] [22 — Image resize (drag handles)](22-image-resize.md) — spike first
 - [ ] [23 — Wikilinks resolution](23-wikilinks-resolution.md)
 - [ ] [32 — Link/image path autocomplete](32-link-image-autocomplete.md) — findFiles + watcher, no engines bump
@@ -48,8 +49,8 @@ checked here **only when the task is fully complete**.
 - [x] [29 — Declare capabilities (untrusted / virtual workspaces)](29-capabilities-declaration.md)
 
 ## Pro / i18n (engines bump — see note)
-- [ ] [30 — Localization (l10n + package.nls.json)](30-localization-l10n.md) — ~^1.73
-- [ ] [31 — Opt-in telemetry (createTelemetryLogger)](31-opt-in-telemetry.md) — ~^1.75, only if metrics wanted
+- [ ] [30 — Localization (l10n + package.nls.json)](30-localization-l10n.md) — ⏸ **parked** (unblocked; do only if PL UI wanted)
+- [ ] [31 — Opt-in telemetry (createTelemetryLogger)](31-opt-in-telemetry.md) — ⏸ **parked** (unblocked; counter to privacy posture)
 
 ## Engines-bump features (tradeoff: cuts older VS Code)
 - [x] [33 — ThemeIcon on the editor tab](33-themeicon-tab.md) — engines floor now ^1.110

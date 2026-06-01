@@ -88,6 +88,15 @@ export class Range {
   }
 }
 
+export class Selection extends Range {
+  get anchor(): Position {
+    return this.start
+  }
+  get active(): Position {
+    return this.end
+  }
+}
+
 export class WorkspaceEdit {
   public readonly replacements: { uri: Uri; range: Range; content: string }[] = []
 
@@ -168,6 +177,13 @@ export const FileType = {
 
 export const ViewColumn = { Active: -1, Beside: -2, One: 1, Two: 2 } as const
 
+export const TextEditorRevealType = {
+  Default: 0,
+  InCenter: 1,
+  InCenterIfOutsideViewport: 2,
+  AtTop: 3,
+} as const
+
 // ---------------------------------------------------------------------------
 // Mutable mock state + control surface
 // ---------------------------------------------------------------------------
@@ -207,6 +223,8 @@ function freshState() {
     responses: {
       showQuickPick: undefined as any,
       showWarningMessage: undefined as any,
+      gitExtension: undefined as any,
+      cursorReply: undefined as { line: number; lineText: string } | undefined,
       executeCommand: undefined as ((command: string, args: any[]) => any) | undefined,
     },
     calls: {
@@ -226,6 +244,7 @@ function freshState() {
         | undefined,
       setKeysForSync: [] as string[][],
       statusBarItems: [] as any[],
+      shownTextEditors: [] as any[],
       outputChannels: [] as {
         name: string
         options: any
@@ -345,6 +364,16 @@ export const window = {
     state.calls.statusBarItems.push(item)
     return item
   }),
+  showTextDocument: vi.fn(async (uriOrDoc: any, options?: any) => {
+    const editor = {
+      document: uriOrDoc,
+      options,
+      selection: undefined as unknown,
+      revealRange: vi.fn(),
+    }
+    state.calls.shownTextEditors.push(editor)
+    return editor
+  }),
   onDidChangeActiveTextEditor: (l: any) =>
     state.emitters.didChangeActiveTextEditor.event(l),
   onDidChangeActiveColorTheme: (l: any) =>
@@ -411,6 +440,15 @@ export const workspace = {
   },
 }
 
+// Minimal extensions namespace. Defaults to "no git" so the gutter diff
+// scheduler (task 17) self-disables in tests; a test can override via
+// state.responses.gitExtension.
+export const extensions = {
+  getExtension: vi.fn((id: string) =>
+    id === 'vscode.git' ? state.responses.gitExtension : undefined
+  ),
+}
+
 export const commands = {
   registerCommand: vi.fn((command: string, handler: (...args: any[]) => any) => {
     state.calls.registeredCommands.set(command, handler)
@@ -474,6 +512,14 @@ function createWebviewPanel() {
       }),
       postMessage: vi.fn((message: any) => {
         state.calls.postMessage.push(message)
+        // Auto-reply to the reveal round-trip when a cursor reply is configured,
+        // so tests can drive get-cursor-offset → cursor-offset end to end.
+        if (
+          message?.command === 'get-cursor-offset' &&
+          state.responses.cursorReply
+        ) {
+          messages.fire({ command: 'cursor-offset', ...state.responses.cursorReply })
+        }
         return Promise.resolve(true)
       }),
       onDidReceiveMessage: (l: any) => messages.event(l),
@@ -527,6 +573,11 @@ export const mock = {
   setActiveTextEditor(uri: Uri | undefined) {
     state.activeTextEditor = uri ? { document: { uri } } : undefined
   },
+  // Register an open text document so workspace.textDocuments.find() sees it.
+  // createTextDocument already pushes into state.documents.
+  setDocument(fsPath: string, text = ''): MockTextDocument {
+    return createTextDocument(fsPath, text)
+  },
   setActiveTab(input: unknown) {
     state.activeTabInput = input
   },
@@ -554,6 +605,11 @@ export const mock = {
   },
   setExecuteCommandResponse(fn: (command: string, args: any[]) => any) {
     state.responses.executeCommand = fn
+  },
+  // Make every panel webview auto-reply to get-cursor-offset with this payload,
+  // so reveal-in-source round-trips resolve in tests (task 16).
+  setCursorReply(reply: { line: number; lineText: string }) {
+    state.responses.cursorReply = reply
   },
   fireDidChangeTextDocument(document: MockTextDocument, extra: Record<string, any> = {}) {
     return state.emitters.didChangeTextDocument.fire({ document, ...extra })

@@ -2,6 +2,8 @@ import * as vscode from 'vscode'
 import * as NodePath from 'path'
 import * as fs from 'fs'
 import { readingTime } from './reading-time'
+import { selectionForLine } from './reveal-range'
+import { createDiffScheduler, makeDiffComputer } from './git-diff'
 import {
   collectWikiMarkdownFiles,
   getWikiDocumentContext,
@@ -222,6 +224,63 @@ function setupStatusBar(context: vscode.ExtensionContext): () => void {
   }
 }
 
+// Open a vMarkd document's source in a text editor and select the caret's line
+// (task 16). Shared by the revealInSource command (opens Beside) and the
+// edit-in-vscode toolbar button (opens in the active column). The webview is
+// asked for the caret's line + that line's text — measured against
+// vditor.getValue() — and we match by CONTENT in the real doc so Vditor's
+// on-load reflow (a blank line after a heading, `>` re-prefixing) can't shift
+// the target. If the caret can't be resolved, we still open the editor (at the
+// top) so the button always does something.
+async function revealCaretInSource(
+  panel: vscode.WebviewPanel,
+  docUri: vscode.Uri,
+  viewColumn: vscode.ViewColumn
+): Promise<void> {
+  const reply = await new Promise<{ line: number; lineText: string }>(
+    (resolve) => {
+      const timeout = setTimeout(() => {
+        sub.dispose()
+        resolve({ line: -1, lineText: '' })
+      }, 1000)
+      const sub = panel.webview.onDidReceiveMessage((msg: any) => {
+        if (msg?.command === 'cursor-offset') {
+          clearTimeout(timeout)
+          sub.dispose()
+          resolve({
+            line: typeof msg.line === 'number' ? msg.line : -1,
+            lineText: typeof msg.lineText === 'string' ? msg.lineText : '',
+          })
+        }
+      })
+      panel.webview.postMessage({ command: 'get-cursor-offset' })
+    }
+  )
+
+  const editor = await vscode.window.showTextDocument(docUri, {
+    viewColumn,
+    preview: false,
+  })
+  if (reply.line < 0) return // opened, but no caret to jump to
+
+  const doc = vscode.workspace.textDocuments.find(
+    (d) => d.uri.toString() === docUri.toString()
+  )
+  const text = doc ? doc.getText() : editor.document.getText()
+  const { line, startChar, endChar } = selectionForLine(
+    text,
+    reply.line,
+    reply.lineText
+  )
+  const start = new vscode.Position(line, startChar)
+  const end = new vscode.Position(line, endChar)
+  editor.selection = new vscode.Selection(start, end)
+  editor.revealRange(
+    new vscode.Range(start, end),
+    vscode.TextEditorRevealType.InCenter
+  )
+}
+
 export function activate(context: vscode.ExtensionContext) {
   logger = vscode.window.createOutputChannel('vMarkd', { log: true })
   context.subscriptions.push(logger)
@@ -327,11 +386,25 @@ export function activate(context: vscode.ExtensionContext) {
           return
         }
         // Reuse an existing source tab (focus it in its column); otherwise open
-        // the text view in the adjacent column (task 36).
+        // the text view in the adjacent column (task 36). When this is invoked
+        // from a live vMarkd editor for the same file, also jump to the caret's
+        // line (task 16) — one button does both: open source to the side AND
+        // reveal the cursor.
         const existing = findTabForUri(target, 'text')
-        await vscode.commands.executeCommand('vscode.openWith', target, 'default', {
-          viewColumn: existing ? existing.group.viewColumn : vscode.ViewColumn.Beside,
-        })
+        const viewColumn = existing
+          ? existing.group.viewColumn
+          : vscode.ViewColumn.Beside
+        const panelEntry = MarkdownEditorProvider.findPanelForUri(target)
+        if (panelEntry) {
+          await revealCaretInSource(panelEntry.panel, target, viewColumn)
+        } else {
+          await vscode.commands.executeCommand(
+            'vscode.openWith',
+            target,
+            'default',
+            { viewColumn }
+          )
+        }
       }
     ),
     vscode.commands.registerCommand('markdown-editor.openSettings', async () => {
@@ -367,7 +440,32 @@ export function activate(context: vscode.ExtensionContext) {
   refreshContexts()
 }
 
+interface ActivePanelEntry {
+  panel: vscode.WebviewPanel
+  uri: vscode.Uri
+}
+
 export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
+  // Live registry of open vMarkd panels (task 16). Commands like revealInSource
+  // need the focused panel + its document; CustomTextEditorProvider gives us no
+  // singleton, so we track them here and pick the active one.
+  static activePanels = new Set<ActivePanelEntry>()
+
+  static findActivePanel(): ActivePanelEntry | undefined {
+    for (const entry of MarkdownEditorProvider.activePanels) {
+      if (entry.panel.active) return entry
+    }
+    return undefined
+  }
+
+  static findPanelForUri(uri: vscode.Uri): ActivePanelEntry | undefined {
+    const want = uri.toString()
+    for (const entry of MarkdownEditorProvider.activePanels) {
+      if (entry.uri.toString() === want) return entry
+    }
+    return undefined
+  }
+
   // Scope the webview's filesystem reach (task 18 §2a). Previously the roots were
   // the whole disk (`/` + every Windows drive), letting the webview load any local
   // file. Narrow to exactly what we serve:
@@ -517,6 +615,11 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
 
     webviewPanel.title = NodePath.basename(activeFsPath)
     webviewPanel.iconPath = new vscode.ThemeIcon('markdown')
+    // Track this panel so commands (e.g. revealInSource, task 16) can find the
+    // focused editor + its document. `uri` is updated on rename below and the
+    // entry is removed on dispose.
+    const panelEntry: ActivePanelEntry = { panel: webviewPanel, uri: activeUri }
+    MarkdownEditorProvider.activePanels.add(panelEntry)
     // Augment, don't replace: keep VS Code's default custom-editor webview options
     // and only override the ones we control (task 27).
     webviewPanel.webview.options = {
@@ -583,6 +686,15 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
         postUpdate()
       }, 75)
     }
+
+    // Git gutters (task 17): debounced HEAD↔current diff pushed to the webview.
+    // The computer reads `activeFsPath` lazily so it follows a rename. Self-
+    // disables (posts []) when there's no git / the file is untracked.
+    const scheduleDiffInfo = createDiffScheduler(
+      (msg) => webviewPanel.webview.postMessage(msg),
+      (content) =>
+        makeDiffComputer(activeFsPath, vscode.extensions)(content)
+    )
 
     // Extracted so it can be disposed + recreated when the file is renamed.
     const setupFileWatcher = (uri: vscode.Uri): vscode.Disposable | undefined => {
@@ -688,6 +800,9 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           return
         }
         const currentContent = event.document.getText()
+        // Any content change (webview edit, external edit, typing) shifts the git
+        // diff — refresh the gutters even for echoed/own edits.
+        scheduleDiffInfo(currentContent)
         if (
           pendingWebviewContent !== undefined &&
           normalizeContent(currentContent) ===
@@ -706,6 +821,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
         if (savedDocument.uri.toString() !== activeUri.toString()) {
           return
         }
+        scheduleDiffInfo(savedDocument.getText())
         schedulePostUpdate()
       }),
       vscode.workspace.onDidRenameFiles((e) => {
@@ -720,6 +836,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
         suppressCloseDispose = true
         activeUri = hit.newUri
         activeFsPath = hit.newUri.fsPath
+        panelEntry.uri = hit.newUri // keep the active-panel registry in sync
         webviewPanel.title = NodePath.basename(activeFsPath)
         currentWatcher?.dispose()
         currentWatcher = setupFileWatcher(activeUri)
@@ -831,9 +948,12 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
             await document.save()
             break
           case 'edit-in-vscode':
-            await vscode.commands.executeCommand(
-              'markdown-editor.openTextEditor',
-              activeUri
+            // Open the source AND jump to the caret's line (task 16). Same column
+            // as the visual editor, matching the previous open-in-place behavior.
+            await revealCaretInSource(
+              webviewPanel,
+              activeUri,
+              vscode.ViewColumn.Active
             )
             break
           case 'navigate-back':
@@ -983,6 +1103,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       }),
       webviewPanel.onDidDispose(() => {
         pendingWebviewContent = undefined
+        MarkdownEditorProvider.activePanels.delete(panelEntry)
         if (textEditTimer) {
           clearTimeout(textEditTimer)
         }

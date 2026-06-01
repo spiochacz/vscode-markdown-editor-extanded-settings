@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { activate, MarkdownEditorProvider } from '../../src/extension'
-import { mock, ColorThemeKind, Uri } from './vscode-mock'
+import { mock, ColorThemeKind, Uri, ViewColumn } from './vscode-mock'
 
 function resolveProvider(fsPath = '/workspace/note.md', text = 'old content\n') {
   mock.setWorkspaceFolder('/workspace')
@@ -211,6 +211,35 @@ describe('resolveCustomTextEditor — webview → editor sync', () => {
   })
 })
 
+describe('edit-in-vscode reveals the caret line (task 16)', () => {
+  beforeEach(() => mock.reset())
+
+  it('opens the source and selects the caret line reported by the webview', async () => {
+    const text = 'first line\nsecond line here\nthird line\n'
+    const { panel } = resolveProvider('/workspace/note.md', text)
+    // the webview will answer get-cursor-offset with this line + text
+    mock.setCursorReply({ line: 1, lineText: 'second line here' })
+
+    await panel._receiveMessage({ command: 'edit-in-vscode' })
+
+    const editor = mock.calls.shownTextEditors.at(-1)
+    expect(editor).toBeDefined()
+    expect(editor.selection.active.line).toBe(1)
+    expect(editor.selection.active.character).toBe('second line here'.length)
+    expect(editor.revealRange).toHaveBeenCalled()
+  })
+
+  it('still opens the source (at the top) when the cursor cannot be resolved', async () => {
+    const { panel } = resolveProvider('/workspace/note.md', 'a\nb\n')
+    mock.setCursorReply({ line: -1, lineText: '' })
+    await panel._receiveMessage({ command: 'edit-in-vscode' })
+    // falls back to just opening the editor — no selection jump, but it opens
+    const editor = mock.calls.shownTextEditors.at(-1)
+    expect(editor).toBeDefined()
+    expect(editor.selection?.active.line ?? 0).toBe(0)
+  })
+})
+
 describe('sanitizeVditorOptions (colors-401 bug)', () => {
   it('removes any baked webview-resource URL anywhere in the object', () => {
     const cleaned = MarkdownEditorProvider.sanitizeVditorOptions({
@@ -382,5 +411,107 @@ describe('resolveCustomTextEditor — live config reload (tasks 12/26)', () => {
     const before = mock.calls.postMessage.length
     mock.fireDidChangeConfiguration('editor')
     expect(mock.calls.postMessage.length).toBe(before)
+  })
+})
+
+describe('openSourceToSide reveals the caret (tasks 16 + 36)', () => {
+  beforeEach(() => {
+    mock.reset()
+    MarkdownEditorProvider.activePanels.clear()
+  })
+
+  // Register a fake vMarkd panel for /note.md whose webview replies to
+  // get-cursor-offset with the given { line, lineText }, plus a matching text
+  // document, and return the openSourceToSide command bound to that uri.
+  function setup(reply: { line: number; lineText: string }, docText: string) {
+    const context = mock.createExtensionContext()
+    activate(context as any)
+
+    const listeners: Array<(m: any) => void> = []
+    const docUri = Uri.file('/note.md')
+    const panel = {
+      active: true,
+      webview: {
+        postMessage: vi.fn((msg: any) => {
+          if (msg.command === 'get-cursor-offset') {
+            // host registers its reply listener before posting → reply now
+            listeners.forEach((l) =>
+              l({ command: 'cursor-offset', ...reply })
+            )
+          }
+          return true
+        }),
+        onDidReceiveMessage: (cb: any) => {
+          listeners.push(cb)
+          return { dispose: vi.fn() }
+        },
+      },
+    }
+    MarkdownEditorProvider.activePanels.add({ panel: panel as any, uri: docUri })
+    mock.setDocument(docUri.fsPath, docText)
+
+    const cmd = mock.calls.registeredCommands.get(
+      'markdown-editor.openSourceToSide'
+    )!
+    return { run: () => cmd(docUri), docUri }
+  }
+
+  it('is registered on activate', () => {
+    const context = mock.createExtensionContext()
+    activate(context as any)
+    expect([...mock.calls.registeredCommands.keys()]).toContain(
+      'markdown-editor.openSourceToSide'
+    )
+  })
+
+  it('opens the source beside and selects the caret line', async () => {
+    const text = 'first line\nsecond line here\nthird\n'
+    const { run } = setup({ line: 1, lineText: 'second line here' }, text)
+    await run()
+
+    const editor = mock.calls.shownTextEditors.at(-1)
+    expect(editor).toBeDefined()
+    expect(editor.options).toMatchObject({ viewColumn: ViewColumn.Beside })
+    expect(editor.selection.anchor.line).toBe(1)
+    expect(editor.selection.anchor.character).toBe(0)
+    expect(editor.selection.active.line).toBe(1)
+    expect(editor.selection.active.character).toBe('second line here'.length)
+    expect(editor.revealRange).toHaveBeenCalled()
+  })
+
+  it('matches by line content when the reported line is off (Vditor reflow)', async () => {
+    // On disk the heading has no blank line after it; Vditor's getValue() added
+    // one, so the webview reports line 3 — but the on-disk line is 2. Matching by
+    // content lands on the correct line regardless.
+    const text = '# Title\nFirst paragraph.\nTarget line here.\nLast.\n'
+    const { run } = setup({ line: 3, lineText: 'Target line here.' }, text)
+    await run()
+    const editor = mock.calls.shownTextEditors.at(-1)
+    expect(editor.selection.active.line).toBe(2) // real line, not the reported 3
+    expect(editor.selection.active.character).toBe('Target line here.'.length)
+  })
+
+  it('still opens the source (no jump) when the webview reports line -1', async () => {
+    const { run } = setup({ line: -1, lineText: '' }, 'whatever\n')
+    await run()
+    // unified behavior: always open the editor; only the line jump is skipped
+    const editor = mock.calls.shownTextEditors.at(-1)
+    expect(editor).toBeDefined()
+    expect(editor.selection).toBeUndefined() // no selection set
+  })
+
+  it('falls back to plain open (no caret query) when no vMarkd panel exists', async () => {
+    const context = mock.createExtensionContext()
+    activate(context as any)
+    mock.setDocument('/orphan.md', 'a\nb\n')
+    const cmd = mock.calls.registeredCommands.get(
+      'markdown-editor.openSourceToSide'
+    )!
+    await cmd(Uri.file('/orphan.md'))
+    // no panel → opens via vscode.openWith default; never queries the cursor
+    expect(mock.calls.shownTextEditors).toHaveLength(0)
+    expect(mock.calls.executeCommand).toContainEqual(
+      expect.objectContaining({ command: 'vscode.openWith' })
+    )
   })
 })
