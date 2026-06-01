@@ -35,6 +35,9 @@ Work accumulated since 0.2.32 (the 0.3.x line) — not yet cut into a dated rele
   numbers, Mermaid theme, toolbar visibility, and a font size that follows VS
   Code's editor size by default.
 - Code-block line numbers (opt-in) and a dark-theme code-block style.
+- `codeTheme` setting — pick the code-block syntax-highlight theme (73
+  highlight.js styles) from VS Code settings; `auto` follows the light/dark theme.
+  Applies live. Replaces the toolbar's code-theme picker.
 - ThemeIcon on the editor tab; declared workspace-trust / virtual-workspace
   capabilities.
 - True opt-in default editor for Markdown files (custom editor registered as
