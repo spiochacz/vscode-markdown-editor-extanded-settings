@@ -115,6 +115,36 @@ function applyVditorTheme(theme: 'dark' | 'light') {
   }
 }
 
+// Show the REAL toolbar in the instant-paint overlay. Vditor builds its toolbar
+// element synchronously in the constructor — with the real icons — but only
+// attaches it to #app later, in its post-Lute initUI (~150 ms later). So right
+// after `new Vditor()` we can clone that built element into the overlay's empty
+// placeholder bar: the teaser shows the actual toolbar (exact layout + icons, no
+// host-side replication) during the Lute wait, and it's dropped with the overlay
+// at the swap. Best-effort — a missing element just leaves the empty bar.
+function showRealToolbarInOverlay() {
+  // Vditor builds the editor (toolbar included) asynchronously — inside its i18n
+  // load callback — so the element isn't there the instant `new Vditor()` returns;
+  // it appears ~tens of ms later, still well before Lute resolves. Poll per frame
+  // until it exists (then clone it in) or the overlay is gone (swap happened).
+  let tries = 0
+  const tick = () => {
+    const bar = document.querySelector('#vmarkd-prerender .vditor-toolbar')
+    if (!bar) return // overlay already swapped out — nothing to do
+    const real = (window.vditor as any)?.vditor?.toolbar?.element as
+      | HTMLElement
+      | undefined
+    if (real) {
+      try {
+        bar.replaceWith(real.cloneNode(true))
+      } catch {}
+      return
+    }
+    if (tries++ < 90) requestAnimationFrame(tick)
+  }
+  tick()
+}
+
 // Remove the host-side instant-paint overlay (see src/lute-host.ts). Called once
 // the live editor is built AND themed (right after applyVditorTheme), so the
 // reveal is seamless — no rAF needed. Idempotent + never throws, so it's safe to
@@ -287,6 +317,9 @@ function initVditor(msg) {
       },
     },
   })
+  // Vditor built its toolbar synchronously above (icons and all); surface it in
+  // the instant-paint overlay now, while Lute is still loading (see helper).
+  showRealToolbarInOverlay()
 }
 
 window.addEventListener('message', (e) => {
