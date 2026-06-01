@@ -82,12 +82,6 @@
         "title": "Open source to the side",
         "category": "markdown-editor",
         "icon": "$(go-to-file)"
-      },
-      {
-        "command": "markdown-editor.revealInSource",
-        "title": "Reveal cursor in source",
-        "category": "markdown-editor",
-        "icon": "$(go-to-file)"
       }
     ],
     "customEditors": [
@@ -138,16 +132,6 @@
           "when": "activeCustomEditorId == markdown-editor.editor",
           "command": "markdown-editor.openSourceToSide",
           "group": "navigation@19"
-        },
-        {
-          "when": "activeCustomEditorId == markdown-editor.editor",
-          "command": "markdown-editor.revealInSource",
-          "group": "navigation@19a"
-        },
-        {
-          "when": "activeCustomEditorId == markdown-editor.editor",
-          "command": "markdown-editor.openSettings",
-          "group": "navigation@20"
         }
       ],
       "editor/title/context": [
@@ -163,7 +147,7 @@
           "when": "false"
         },
         {
-          "command": "markdown-editor.revealInSource",
+          "command": "markdown-editor.openSourceToSide",
           "when": "activeCustomEditorId == markdown-editor.editor"
         }
       ]

@@ -23,7 +23,11 @@ import { setupOutlineFlash } from './outline'
 import { applyBodyOptions, swapStyle, initOnlyChanged } from './live-config'
 import { applyMermaidTheme } from './mermaid-theme'
 import { setupHistoryKeybind } from './undo-keybind'
-import { getCursorSourceOffset } from './source-map'
+import {
+  getCursorSourceOffset,
+  activeModeElement,
+  lineAndTextForOffset,
+} from './source-map'
 import {
   renderDiffMarkers,
   clearDiffMarkers,
@@ -35,6 +39,51 @@ let applyingExtensionUpdate = false
 // The last message Vditor was initialised from — used to re-init when a
 // constructor-only setting (toolbar, word count, …) changes live (task 26).
 let lastInitMsg: any = null
+
+// Reveal-in-Source (task 16): remember the caret inside the editor. When the
+// command runs from VS Code chrome (the toolbar button), focus leaves the
+// webview iframe and the live selection collapses to the editor start — so the
+// raw selection would read as offset 0. We snapshot the last in-editor caret on
+// selectionchange and restore it before measuring, so the button and the command
+// palette resolve to the SAME caret. Stored as a cloned Range.
+let lastEditorRange: Range | null = null
+function trackEditorCaret() {
+  const v = window.vditor
+  if (!v) return
+  const editor = activeModeElement(v)
+  if (!editor) return
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return
+  const node = sel.anchorNode
+  if (!node || !editor.contains(node)) return
+  // ignore a caret collapsed to the very start of the editor (the focus-loss
+  // artifact we are guarding against) so it can't overwrite a real position
+  if (node === editor && sel.anchorOffset === 0 && sel.isCollapsed) return
+  lastEditorRange = sel.getRangeAt(0).cloneRange()
+}
+document.addEventListener('selectionchange', trackEditorCaret)
+
+// Restore the remembered caret when the live selection is missing or collapsed
+// to the editor start (focus left the iframe). Returns true if a restore ran.
+function restoreEditorCaretIfLost(): boolean {
+  const v = window.vditor
+  if (!v || !lastEditorRange) return false
+  const editor = activeModeElement(v)
+  if (!editor) return false
+  const sel = window.getSelection()
+  const node = sel && sel.rangeCount > 0 ? sel.anchorNode : null
+  const live = node && editor.contains(node)
+  const collapsedAtStart =
+    node === editor && sel!.anchorOffset === 0 && sel!.isCollapsed
+  if (live && !collapsedAtStart) return false // a real caret is present; keep it
+  try {
+    sel!.removeAllRanges()
+    sel!.addRange(lastEditorRange)
+    return true
+  } catch {
+    return false
+  }
+}
 
 // Apply Vditor's UI + content + code theme via setTheme — the proven path.
 // The constructor `theme`/`preview.theme.current` options alone do NOT reliably
@@ -268,11 +317,26 @@ window.addEventListener('message', (e) => {
       break
     }
     case 'get-cursor-offset': {
-      // Reveal-in-Source (task 16): report the caret's exact source offset so the
-      // host can select the matching line. Always reply (offset -1 when
+      // Reveal-in-Source (task 16): report the caret position so the host can
+      // select the matching line. Restore the last in-editor caret first (the
+      // toolbar button blurs the iframe and collapses the live selection). Reply
+      // with the line number AND that line's text — both measured against
+      // vditor.getValue() — so the host can match by content in the on-disk doc
+      // (which may differ by Vditor's on-load reflow) rather than a raw offset
+      // that drifts across the two text spaces. Always reply (line -1 when
       // unresolved) so the host's awaited round-trip never hangs past its timeout.
-      const offset = window.vditor ? getCursorSourceOffset(window.vditor) : -1
-      vscode.postMessage({ command: 'cursor-offset', offset })
+      let line = -1
+      let lineText = ''
+      if (window.vditor) {
+        restoreEditorCaretIfLost()
+        const offset = getCursorSourceOffset(window.vditor)
+        if (offset >= 0) {
+          const res = lineAndTextForOffset(window.vditor.getValue(), offset)
+          line = res.line
+          lineText = res.lineText
+        }
+      }
+      vscode.postMessage({ command: 'cursor-offset', line, lineText })
       break
     }
     case 'diff-info': {

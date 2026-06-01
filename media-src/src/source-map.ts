@@ -86,7 +86,7 @@ function isBlockEl(el: HTMLElement): boolean {
 
 // Resolve the active mode's editable element (IR / WYSIWYG / SV) — never a
 // hard-coded `.vditor-ir`, so mapping works in whatever mode the user is in.
-function activeModeElement(vditor: any): HTMLElement | null {
+export function activeModeElement(vditor: any): HTMLElement | null {
   const inner = vditor?.vditor
   const mode = inner?.currentMode
   const el = mode ? inner?.[mode]?.element : undefined
@@ -186,4 +186,19 @@ export function getCursorSourceOffset(vditor: any): number {
   if (!sample) return -1
   const matchIdx = md.indexOf(sample)
   return matchIdx >= 0 ? matchIdx : -1
+}
+
+// Resolve a source offset to its 0-based line number and that line's text, both
+// in the same string `md`. Reveal-in-source sends BOTH to the host so it can
+// match the line by content in the on-disk doc (which may differ from
+// vditor.getValue() by Vditor's on-load reflow) instead of trusting a raw
+// offset that drifts across the two text spaces.
+export function lineAndTextForOffset(
+  md: string,
+  offset: number
+): { line: number; lineText: string } {
+  const clamped = Math.max(0, Math.min(offset, md.length))
+  const lines = md.split('\n')
+  const line = md.substring(0, clamped).split('\n').length - 1
+  return { line, lineText: lines[line] ?? '' }
 }

@@ -224,6 +224,7 @@ function freshState() {
       showQuickPick: undefined as any,
       showWarningMessage: undefined as any,
       gitExtension: undefined as any,
+      cursorReply: undefined as { line: number; lineText: string } | undefined,
       executeCommand: undefined as ((command: string, args: any[]) => any) | undefined,
     },
     calls: {
@@ -511,6 +512,14 @@ function createWebviewPanel() {
       }),
       postMessage: vi.fn((message: any) => {
         state.calls.postMessage.push(message)
+        // Auto-reply to the reveal round-trip when a cursor reply is configured,
+        // so tests can drive get-cursor-offset → cursor-offset end to end.
+        if (
+          message?.command === 'get-cursor-offset' &&
+          state.responses.cursorReply
+        ) {
+          messages.fire({ command: 'cursor-offset', ...state.responses.cursorReply })
+        }
         return Promise.resolve(true)
       }),
       onDidReceiveMessage: (l: any) => messages.event(l),
@@ -596,6 +605,11 @@ export const mock = {
   },
   setExecuteCommandResponse(fn: (command: string, args: any[]) => any) {
     state.responses.executeCommand = fn
+  },
+  // Make every panel webview auto-reply to get-cursor-offset with this payload,
+  // so reveal-in-source round-trips resolve in tests (task 16).
+  setCursorReply(reply: { line: number; lineText: string }) {
+    state.responses.cursorReply = reply
   },
   fireDidChangeTextDocument(document: MockTextDocument, extra: Record<string, any> = {}) {
     return state.emitters.didChangeTextDocument.fire({ document, ...extra })

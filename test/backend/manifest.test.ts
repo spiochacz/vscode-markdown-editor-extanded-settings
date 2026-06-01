@@ -80,18 +80,16 @@ describe('package.json manifest', () => {
     expect(inTitle).toBe(true)
   })
 
-  it('contributes an Open-Settings command shown in the editor title for the custom editor', () => {
+  it('contributes an Open-Settings command but NOT in the editor title bar', () => {
     const cmd = pkg.contributes.commands.find(
       (c: any) => c.command === 'markdown-editor.openSettings'
     )
-    expect(cmd).toBeDefined()
-    expect(cmd.icon).toBe('$(settings-gear)')
+    expect(cmd).toBeDefined() // available via the command palette
+    // intentionally absent from the editor title bar to keep it uncluttered
     const inTitle = pkg.contributes.menus['editor/title'].some(
-      (m: any) =>
-        m.command === 'markdown-editor.openSettings' &&
-        m.when === `activeCustomEditorId == ${VIEW_TYPE}`
+      (m: any) => m.command === 'markdown-editor.openSettings'
     )
-    expect(inTitle).toBe(true)
+    expect(inTitle).toBe(false)
   })
 
   it('binds the "edit in text editor" keybinding scoped to the custom editor', () => {

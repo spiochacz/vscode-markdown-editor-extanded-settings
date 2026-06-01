@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as NodePath from 'path'
 import * as fs from 'fs'
 import { readingTime } from './reading-time'
-import { selectionForOffset } from './reveal-range'
+import { selectionForLine } from './reveal-range'
 import { createDiffScheduler, makeDiffComputer } from './git-diff'
 import {
   collectWikiMarkdownFiles,
@@ -224,6 +224,63 @@ function setupStatusBar(context: vscode.ExtensionContext): () => void {
   }
 }
 
+// Open a vMarkd document's source in a text editor and select the caret's line
+// (task 16). Shared by the revealInSource command (opens Beside) and the
+// edit-in-vscode toolbar button (opens in the active column). The webview is
+// asked for the caret's line + that line's text — measured against
+// vditor.getValue() — and we match by CONTENT in the real doc so Vditor's
+// on-load reflow (a blank line after a heading, `>` re-prefixing) can't shift
+// the target. If the caret can't be resolved, we still open the editor (at the
+// top) so the button always does something.
+async function revealCaretInSource(
+  panel: vscode.WebviewPanel,
+  docUri: vscode.Uri,
+  viewColumn: vscode.ViewColumn
+): Promise<void> {
+  const reply = await new Promise<{ line: number; lineText: string }>(
+    (resolve) => {
+      const timeout = setTimeout(() => {
+        sub.dispose()
+        resolve({ line: -1, lineText: '' })
+      }, 1000)
+      const sub = panel.webview.onDidReceiveMessage((msg: any) => {
+        if (msg?.command === 'cursor-offset') {
+          clearTimeout(timeout)
+          sub.dispose()
+          resolve({
+            line: typeof msg.line === 'number' ? msg.line : -1,
+            lineText: typeof msg.lineText === 'string' ? msg.lineText : '',
+          })
+        }
+      })
+      panel.webview.postMessage({ command: 'get-cursor-offset' })
+    }
+  )
+
+  const editor = await vscode.window.showTextDocument(docUri, {
+    viewColumn,
+    preview: false,
+  })
+  if (reply.line < 0) return // opened, but no caret to jump to
+
+  const doc = vscode.workspace.textDocuments.find(
+    (d) => d.uri.toString() === docUri.toString()
+  )
+  const text = doc ? doc.getText() : editor.document.getText()
+  const { line, startChar, endChar } = selectionForLine(
+    text,
+    reply.line,
+    reply.lineText
+  )
+  const start = new vscode.Position(line, startChar)
+  const end = new vscode.Position(line, endChar)
+  editor.selection = new vscode.Selection(start, end)
+  editor.revealRange(
+    new vscode.Range(start, end),
+    vscode.TextEditorRevealType.InCenter
+  )
+}
+
 export function activate(context: vscode.ExtensionContext) {
   logger = vscode.window.createOutputChannel('vMarkd', { log: true })
   context.subscriptions.push(logger)
@@ -329,11 +386,25 @@ export function activate(context: vscode.ExtensionContext) {
           return
         }
         // Reuse an existing source tab (focus it in its column); otherwise open
-        // the text view in the adjacent column (task 36).
+        // the text view in the adjacent column (task 36). When this is invoked
+        // from a live vMarkd editor for the same file, also jump to the caret's
+        // line (task 16) — one button does both: open source to the side AND
+        // reveal the cursor.
         const existing = findTabForUri(target, 'text')
-        await vscode.commands.executeCommand('vscode.openWith', target, 'default', {
-          viewColumn: existing ? existing.group.viewColumn : vscode.ViewColumn.Beside,
-        })
+        const viewColumn = existing
+          ? existing.group.viewColumn
+          : vscode.ViewColumn.Beside
+        const panelEntry = MarkdownEditorProvider.findPanelForUri(target)
+        if (panelEntry) {
+          await revealCaretInSource(panelEntry.panel, target, viewColumn)
+        } else {
+          await vscode.commands.executeCommand(
+            'vscode.openWith',
+            target,
+            'default',
+            { viewColumn }
+          )
+        }
       }
     ),
     vscode.commands.registerCommand('markdown-editor.openSettings', async () => {
@@ -343,57 +414,6 @@ export function activate(context: vscode.ExtensionContext) {
         '@ext:spiochacz.vmarkd'
       )
     }),
-    vscode.commands.registerCommand(
-      'markdown-editor.revealInSource',
-      async () => {
-        // Reveal-in-Source (task 16): ask the active vMarkd webview for the
-        // caret's exact source offset, then open the underlying .md beside and
-        // select that line.
-        const entry = MarkdownEditorProvider.findActivePanel()
-        if (!entry) {
-          vscode.window.showInformationMessage(
-            'Focus a vMarkd editor to reveal its source.'
-          )
-          return
-        }
-        const { panel, uri: docUri } = entry
-
-        // Round-trip with a 1s timeout so a missing reply can't hang the command;
-        // the listener self-disposes either way.
-        const offset = await new Promise<number>((resolve) => {
-          const timeout = setTimeout(() => {
-            sub.dispose()
-            resolve(-1)
-          }, 1000)
-          const sub = panel.webview.onDidReceiveMessage((msg: any) => {
-            if (msg?.command === 'cursor-offset') {
-              clearTimeout(timeout)
-              sub.dispose()
-              resolve(typeof msg.offset === 'number' ? msg.offset : -1)
-            }
-          })
-          panel.webview.postMessage({ command: 'get-cursor-offset' })
-        })
-        if (offset < 0) return
-
-        const doc = vscode.workspace.textDocuments.find(
-          (d) => d.uri.toString() === docUri.toString()
-        )
-        const text = doc ? doc.getText() : ''
-        const { line, startChar, endChar } = selectionForOffset(text, offset)
-        const editor = await vscode.window.showTextDocument(docUri, {
-          viewColumn: vscode.ViewColumn.Beside,
-          preview: false,
-        })
-        const start = new vscode.Position(line, startChar)
-        const end = new vscode.Position(line, endChar)
-        editor.selection = new vscode.Selection(start, end)
-        editor.revealRange(
-          new vscode.Range(start, end),
-          vscode.TextEditorRevealType.InCenter
-        )
-      }
-    ),
     vscode.window.registerCustomEditorProvider(
       MarkdownEditorViewType,
       new MarkdownEditorProvider(context),
@@ -434,6 +454,14 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
   static findActivePanel(): ActivePanelEntry | undefined {
     for (const entry of MarkdownEditorProvider.activePanels) {
       if (entry.panel.active) return entry
+    }
+    return undefined
+  }
+
+  static findPanelForUri(uri: vscode.Uri): ActivePanelEntry | undefined {
+    const want = uri.toString()
+    for (const entry of MarkdownEditorProvider.activePanels) {
+      if (entry.uri.toString() === want) return entry
     }
     return undefined
   }
@@ -920,9 +948,12 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
             await document.save()
             break
           case 'edit-in-vscode':
-            await vscode.commands.executeCommand(
-              'markdown-editor.openTextEditor',
-              activeUri
+            // Open the source AND jump to the caret's line (task 16). Same column
+            // as the visual editor, matching the previous open-in-place behavior.
+            await revealCaretInSource(
+              webviewPanel,
+              activeUri,
+              vscode.ViewColumn.Active
             )
             break
           case 'navigate-back':
