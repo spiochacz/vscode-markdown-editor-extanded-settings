@@ -1244,6 +1244,27 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
     // Falls back to nothing (normal render path) when Lute isn't warm yet.
     const showToolbar =
       MarkdownEditorProvider.config.get<boolean>('showToolbar') !== false
+    // Set the body data-attrs statically so the overlay gets the SAME themed
+    // colours/layout the live editor will. Every colour rule in main.css is
+    // gated on `body[data-use-vscode-theme-color="1"] .vditor…`, so without
+    // these the swap shows a colour jump. Mirrors applyBodyOptions() +
+    // resolveFontSize() in media-src/src/live-config.ts — keep in sync.
+    const cfg = MarkdownEditorProvider.config
+    const bodyAttrs =
+      `data-use-vscode-theme-color="${cfg.get<boolean>('useVscodeThemeColor') ? '1' : '0'}" ` +
+      `data-full-width="${cfg.get<boolean>('enableFullWidth') ? '1' : '0'}" ` +
+      `data-highlight-headings="${cfg.get<boolean>('highlightHeadings') ? '1' : '0'}" ` +
+      `data-heading-markers="${cfg.get<boolean>('showHeadingMarkers') === false ? '0' : '1'}"`
+    const fontSizeOpt = cfg.get<string>('fontSize')
+    const fontSizeCss =
+      !fontSizeOpt || fontSizeOpt === 'editor'
+        ? 'var(--vscode-editor-font-size, 14px)'
+        : fontSizeOpt === 'vditor'
+          ? '16px'
+          : Number.isFinite(parseFloat(fontSizeOpt)) &&
+              parseFloat(fontSizeOpt) > 0
+            ? `${parseFloat(fontSizeOpt)}px`
+            : 'var(--vscode-editor-font-size, 14px)'
     const preIR =
       content !== undefined
         ? renderIR(this._context.extensionPath, content)
@@ -1291,7 +1312,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       prerenderStyle +
       `
 			</head>
-			<body>
+			<body ${bodyAttrs} style="--me-font-size:${fontSizeCss}">
 				<div id="app"></div>
 				${prerenderOverlay}
 
