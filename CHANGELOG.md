@@ -45,6 +45,9 @@ Work accumulated since 0.2.32 (the 0.3.x line) — not yet cut into a dated rele
 - Hide Vditor's preview action bar (`preview.actions: []`) — drops the
   Desktop/Tablet/Mobile device-width switch and the China-specific "copy for
   WeChat 公众号 / Zhihu" buttons, irrelevant in a VS Code markdown editor.
+- Drop the content-theme picker from the toolbar's "more" menu — VS Code manages
+  the theme (content follows the editor colours). The code-block syntax-highlight
+  theme picker (`code-theme`) stays.
 - Unified icons on VS Code codicons: title-bar buttons use `$(markdown)` /
   `$(go-to-file)`; the in-webview Vditor toolbar is restyled to codicons via a
   generated override (24 codicons + 6 codicon-style customs for glyphs codicons
