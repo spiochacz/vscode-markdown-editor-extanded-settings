@@ -38,6 +38,9 @@ package.json for the title-bar button unchanged.
   risks confusion, but they live in different surfaces (toolbar vs title bar), so
   context distinguishes them. Confirmed acceptable by the user.
 - Codicon source: https://github.com/microsoft/vscode-codicons → `go-to-file`.
+- Browse / preview all codicons (find the icon + its name):
+  https://microsoft.github.io/vscode-codicons/dist/codicon.html — the visual
+  reference for picking a glyph; copy its `<path>` data from the source repo above.
 
 ## Verify
 Open a `.md` in vMarkd → the toolbar "open in vs code" button and the title-bar
