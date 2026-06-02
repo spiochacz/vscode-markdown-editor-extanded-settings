@@ -187,6 +187,8 @@ describe('package.json manifest', () => {
     expect(props['vmarkd.outline.width']).toMatchObject({
       type: 'number',
       default: 200,
+      minimum: 100,
+      maximum: 800,
     })
     expect(props['vmarkd.outline.openByDefault']).toMatchObject({
       type: 'boolean',
@@ -210,6 +212,22 @@ describe('package.json manifest', () => {
     expect(props['vmarkd.theme.mermaid'].enum).toEqual(
       expect.arrayContaining(['auto', 'default', 'forest']),
     )
+    // task 51: per-value dropdown help, parallel to enum by index.
+    const mermaid = props['vmarkd.theme.mermaid']
+    expect(mermaid.enumDescriptions).toHaveLength(mermaid.enum.length)
+    expect(mermaid.enumDescriptions[0]).toMatch(/VS Code/i)
+  })
+
+  it('describes the "auto" value of theme.code (task 51)', () => {
+    const props = Object.assign(
+      {},
+      ...pkg.contributes.configuration.map((c: any) => c.properties),
+    )
+    const code = props['vmarkd.theme.code']
+    expect(code.enum[0]).toBe('auto')
+    // single-entry array: only "auto" (index 0) gets help; the 70+ named
+    // highlight.js styles are self-evident and left undescribed.
+    expect(code.enumDescriptions[0]).toMatch(/VS Code/i)
   })
 
   it('declares the fontSize setting under Appearance, default "editor" (task 43)', () => {
