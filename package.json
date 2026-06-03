@@ -15,7 +15,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "vMark renders and edits markdown, but defers writing images and creating wiki pages until the workspace is trusted."
+      "description": "vMarkd renders and edits markdown, but defers writing images and creating wiki pages until the workspace is trusted."
     },
     "virtualWorkspaces": {
       "supported": "limited",
@@ -53,7 +53,7 @@
     "commands": [
       {
         "command": "vmarkd.openEditor",
-        "title": "Open with markdown editor",
+        "title": "Open with vMarkd",
         "category": "vMarkd",
         "icon": "$(markdown)"
       },
@@ -71,7 +71,7 @@
       },
       {
         "command": "vmarkd.openInSplit",
-        "title": "Open with markdown editor to the side",
+        "title": "Open with vMarkd to the side",
         "category": "vMarkd",
         "icon": "$(split-horizontal)"
       },
@@ -85,7 +85,7 @@
     "customEditors": [
       {
         "viewType": "vmarkd.editor",
-        "displayName": "Visual Markdown Editor",
+        "displayName": "vMarkd",
         "selector": [
           {
             "filenamePattern": "*.md",
@@ -152,50 +152,22 @@
     },
     "configuration": [
       {
-        "title": "General",
-        "order": 1,
-        "properties": {
-          "vmarkd.image.saveFolder": {
-            "type": "string",
-            "default": "assets",
-            "scope": "resource",
-            "description": "Save images to which folder when upload in markdown, default relative to the markdown file, you can set to project root via `${projectRoot}/assets`. Resource-scoped — a workspace/folder can override it in `.vscode/settings.json`."
-          },
-          "vmarkd.editor.retainHidden": {
-            "type": "boolean",
-            "default": true,
-            "description": "Keep hidden editor tabs alive for instant switching. Turn off to free memory when many tabs are open (each hidden editor is fully retained), at the cost of a reload when you switch back. Changing this requires reloading the window."
-          }
-        }
-      },
-      {
         "title": "Appearance",
         "order": 2,
         "properties": {
           "vmarkd.theme.useVscodeColors": {
             "type": "boolean",
             "default": true,
-            "description": "Use vscode theme's background color as the markdown editor's background color."
+            "description": "Apply the VS Code theme's colors to the markdown editor."
           },
-          "vmarkd.editor.fullWidth": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable full-width layout for the editor (removes max-width centering)."
-          },
-          "vmarkd.editor.fontSize": {
+          "vmarkd.theme.code": {
             "type": "string",
-            "default": "editor",
-            "description": "Base font size of the editor content. \"editor\" follows VS Code's editor font size (recommended), \"vditor\" keeps Vditor's larger 16px reading size, or enter a number for an explicit pixel size (e.g. \"15\"). Headings scale proportionally."
-          },
-          "vmarkd.theme.highlightHeadings": {
-            "type": "boolean",
-            "default": true,
-            "description": "Apply a themed background to headings (h1–h6) for easier scanning."
-          },
-          "vmarkd.editor.headingMarkers": {
-            "type": "boolean",
-            "default": true,
-            "description": "Show the IR-mode left-gutter markers (heading levels H1–H6, the link-reference ↩, etc.). Turn off to hide them and tighten the left margin."
+            "enum": ["auto", "a11y-dark", "a11y-light", "agate", "an-old-hope", "androidstudio", "ant-design", "arduino-light", "arta", "ascetic", "atom-one-dark", "atom-one-dark-reasonable", "atom-one-light", "brown-paper", "codepen-embed", "color-brewer", "dark", "default", "devibeans", "docco", "far", "felipec", "foundation", "github", "github-dark", "github-dark-dimmed", "gml", "googlecode", "gradient-dark", "gradient-light", "grayscale", "hybrid", "idea", "intellij-light", "ir-black", "isbl-editor-dark", "isbl-editor-light", "kimbie-dark", "kimbie-light", "lightfair", "lioshi", "magula", "mono-blue", "monokai", "monokai-sublime", "night-owl", "nnfx-dark", "nnfx-light", "nord", "obsidian", "panda-syntax-dark", "panda-syntax-light", "paraiso-dark", "paraiso-light", "pojoaque", "purebasic", "qtcreator-dark", "qtcreator-light", "rainbow", "routeros", "school-book", "shades-of-purple", "srcery", "stackoverflow-dark", "stackoverflow-light", "sunburst", "tokyo-night-dark", "tokyo-night-light", "tomorrow-night-blue", "tomorrow-night-bright", "vs", "vs2015", "xcode", "xt256"],
+            "enumDescriptions": [
+              "Follow the VS Code light/dark theme — github in a light theme, github-dark in a dark one."
+            ],
+            "default": "auto",
+            "description": "Syntax-highlight theme for code blocks (highlight.js). \"auto\" follows the VS Code light/dark theme (github / github-dark); pick any of the 73 highlight.js styles to override. Applies live."
           },
           "vmarkd.theme.mermaid": {
             "type": "string",
@@ -216,29 +188,35 @@
             "default": "auto",
             "description": "Theme for Mermaid diagrams. \"auto\" follows the editor (dark in a dark theme) — which renders a plain flowchart mostly monochrome; pick \"default\"/\"forest\"/\"neutral\" for colour, or \"dark\" to force the dark palette."
           },
+          "vmarkd.editor.fullWidth": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable full-width layout for the editor (removes max-width centering)."
+          },
+          "vmarkd.editor.fontSize": {
+            "type": "string",
+            "default": "editor",
+            "description": "Base font size of the editor content. \"editor\" follows VS Code's editor font size (recommended), \"vditor\" keeps Vditor's larger 16px reading size, or enter a number for an explicit pixel size (e.g. \"15\"). Headings scale proportionally."
+          },
+          "vmarkd.theme.highlightHeadings": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply a themed background to headings (h1–h6) for easier scanning."
+          },
+          "vmarkd.editor.headingMarkers": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show the IR-mode left-gutter markers (heading levels H1–H6, the link-reference ↩, etc.). Turn off to hide them and tighten the left margin."
+          },
           "vmarkd.editor.codeLineNumbers": {
             "type": "boolean",
             "default": false,
             "description": "Show line numbers in fenced code blocks (rendered preview). Off by default — adds a line-number gutter per code block."
           },
-          "vmarkd.theme.code": {
-            "type": "string",
-            "enum": ["auto", "a11y-dark", "a11y-light", "agate", "an-old-hope", "androidstudio", "ant-design", "arduino-light", "arta", "ascetic", "atom-one-dark", "atom-one-dark-reasonable", "atom-one-light", "brown-paper", "codepen-embed", "color-brewer", "dark", "default", "devibeans", "docco", "far", "felipec", "foundation", "github", "github-dark", "github-dark-dimmed", "gml", "googlecode", "gradient-dark", "gradient-light", "grayscale", "hybrid", "idea", "intellij-light", "ir-black", "isbl-editor-dark", "isbl-editor-light", "kimbie-dark", "kimbie-light", "lightfair", "lioshi", "magula", "mono-blue", "monokai", "monokai-sublime", "night-owl", "nnfx-dark", "nnfx-light", "nord", "obsidian", "panda-syntax-dark", "panda-syntax-light", "paraiso-dark", "paraiso-light", "pojoaque", "purebasic", "qtcreator-dark", "qtcreator-light", "rainbow", "routeros", "school-book", "shades-of-purple", "srcery", "stackoverflow-dark", "stackoverflow-light", "sunburst", "tokyo-night-dark", "tokyo-night-light", "tomorrow-night-blue", "tomorrow-night-bright", "vs", "vs2015", "xcode", "xt256"],
-            "enumDescriptions": [
-              "Follow the VS Code light/dark theme — github in a light theme, github-dark in a dark one."
-            ],
-            "default": "auto",
-            "description": "Syntax-highlight theme for code blocks (highlight.js). \"auto\" follows the VS Code light/dark theme (github / github-dark); pick any of the 73 highlight.js styles to override. Applies live."
-          },
           "vmarkd.editor.toolbar": {
             "type": "boolean",
             "default": true,
             "description": "Show the editor toolbar. When off, the editor opens without a toolbar."
-          },
-          "vmarkd.editor.wordCount": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show a live word/character count. Off by default — the count recomputes on every keystroke, which can be costly in large documents."
           }
         }
       },
@@ -304,6 +282,22 @@
             "type": "boolean",
             "default": true,
             "description": "Instant preview: before the live editor finishes loading, paint a fast read-only preview of the document and a placeholder toolbar so the file appears immediately, then swap to the live editor seamlessly. Turn off to open straight into the live editor with no pre-render."
+          },
+          "vmarkd.advanced.streamLargeFiles": {
+            "type": "boolean",
+            "default": true,
+            "description": "Stream large markdown files into the editor in chunks instead of one blocking render (which can freeze the editor for seconds on big files). While streaming, the editor is briefly read-only with a loading spinner. Turn off to render large files in a single pass."
+          },
+          "vmarkd.advanced.retainHidden": {
+            "type": "boolean",
+            "default": true,
+            "description": "Keep hidden editor tabs alive for instant switching. Turn off to free memory when many tabs are open (each hidden editor is fully retained), at the cost of a reload when you switch back. Changing this requires reloading the window."
+          },
+          "vmarkd.image.saveFolder": {
+            "type": "string",
+            "default": "assets",
+            "scope": "resource",
+            "description": "Save images to which folder when upload in markdown, default relative to the markdown file, you can set to project root via `${projectRoot}/assets`. Resource-scoped — a workspace/folder can override it in `.vscode/settings.json`."
           }
         }
       }
