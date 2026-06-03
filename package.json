@@ -283,6 +283,11 @@
             "default": true,
             "description": "Instant preview: before the live editor finishes loading, paint a fast read-only preview of the document and a placeholder toolbar so the file appears immediately, then swap to the live editor seamlessly. Turn off to open straight into the live editor with no pre-render."
           },
+          "vmarkd.advanced.streamLargeFiles": {
+            "type": "boolean",
+            "default": true,
+            "description": "Stream large markdown files into the editor in chunks instead of one blocking render (which can freeze the editor for seconds on big files). While streaming, the editor is briefly read-only with a loading spinner. Turn off to render large files in a single pass."
+          },
           "vmarkd.advanced.retainHidden": {
             "type": "boolean",
             "default": true,

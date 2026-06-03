@@ -326,7 +326,9 @@ function initVditor(msg) {
   // Vditor whole — one monolithic Md2VditorIRDOM(fullDoc) blocks the editor for
   // seconds. When streaming, construct empty and fill in after() via streamRenderIR.
   const willStream =
-    typeof msg.content === 'string' && msg.content.length > STREAM_MIN_CHARS
+    msg.options?.streamLargeFiles !== false &&
+    typeof msg.content === 'string' &&
+    msg.content.length > STREAM_MIN_CHARS
   window.vditor = new Vditor('app', {
     width: '100%',
     height: '100%',

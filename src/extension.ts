@@ -1255,6 +1255,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       showOutlineByDefault: c.get<boolean>('outline.openByDefault'),
       outlineHighlight: c.get<boolean>('outline.highlight'),
       codeTheme: c.get<string>('theme.code'),
+      streamLargeFiles: c.get<boolean>('advanced.streamLargeFiles'),
     }
   }
 
