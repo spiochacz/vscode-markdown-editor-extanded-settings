@@ -1,6 +1,7 @@
 # Task 51 — Config & manifest polish (settings UX)
 
-**Status:** planned
+**Status:** partly done — 1, 2 + 4 shipped on `feat/config-manifest-polish` (PR #41);
+3 (`scope: resource`, needs URI threading) still open.
 
 ## Problem
 
@@ -12,15 +13,18 @@ related work: prefix-grouped setting IDs `image./editor./theme./css./outline./ad
 
 ## Scope — do
 
-### 1. `enumDescriptions` for `theme.mermaid` (quick win)
+### 1. `enumDescriptions` for `theme.mermaid` (quick win) — ✅ done
 The enum has 5 values (`auto`/`default`/`dark`/`forest`/`neutral`) with no per-value
-help. Add `enumDescriptions` so the Settings dropdown explains each.
-- Do NOT add for `theme.code` (~75 highlight.js styles — would be noise) or
-  `outline.position` (left/right — self-evident).
+help. Added `enumDescriptions` (parallel-by-index) so the Settings dropdown explains
+each.
+- `theme.code` also got a **single-entry** `enumDescriptions` — only `auto` (index 0)
+  is described ("follows the VS Code light/dark theme"); the 70+ named highlight.js
+  styles are left undescribed (would be noise). `outline.position` (left/right) left
+  self-evident as planned.
 
-### 2. `minimum`/`maximum` on `outline.width` (quick win)
-`type: number`, default 200, no bounds. Add e.g. `"minimum": 100, "maximum": 800`
-so the Settings UI validates and nonsense values are rejected.
+### 2. `minimum`/`maximum` on `outline.width` (quick win) — ✅ done
+Added `"minimum": 100, "maximum": 800` so the Settings UI validates and rejects
+nonsense values. `manifest.test.ts` asserts both.
 
 ## Scope — worth it, but needs code (separate, deliberate)
 
@@ -36,10 +40,11 @@ Thread the active document URI through the relevant reads (CSS aggregation,
 
 ## Scope — optional / defensive
 
-### 4. `extensionKind: ["workspace"]`
+### 4. `extensionKind: ["workspace"]` — ✅ done
 Defensive for Remote-SSH / WSL / Dev Containers — the extension reads the local FS
 (lute.min.js, images, wiki), so it must run on the workspace side. VS Code usually
-infers this for a node extension with `main`, so this is belt-and-suspenders.
+infers this for a node extension with `main`, so this is belt-and-suspenders. Pinned
+explicitly; `manifest.test.ts` asserts `extensionKind === ['workspace']`.
 
 ## Decided against (don't re-litigate)
 
