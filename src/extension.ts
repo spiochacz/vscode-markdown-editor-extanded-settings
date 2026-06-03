@@ -659,6 +659,220 @@ export class EditorSession {
     this.disposables.push(this.externalCssWatcher)
   }
 
+  private async onReady() {
+    let wikiInit: any = this.wiki
+    if (this.wiki.enabled) {
+      const root = getWikiRoot(this.document.uri)
+      if (root) {
+        const pageKeys = await getWikiPageKeys(root)
+        wikiInit = { ...this.wiki, pageKeys }
+      }
+    }
+    await this.postUpdate({
+      type: 'init',
+      cdn: this.vditorBaseUri,
+      options: {
+        ...MarkdownEditorProvider.collectConfigOptions(),
+        ...MarkdownEditorProvider.sanitizeVditorOptions(
+          this.context.globalState.get(KeyVditorOptions),
+        ),
+      },
+      theme: currentThemeKind(),
+      wiki: wikiInit,
+    })
+  }
+
+  private async onSaveOptions(message: any) {
+    await this.context.globalState.update(
+      KeyVditorOptions,
+      MarkdownEditorProvider.sanitizeVditorOptions(message.options),
+    )
+  }
+
+  private onInfo(message: any) {
+    vscode.window.showInformationMessage(message.content)
+  }
+
+  private onError(message: any) {
+    showError(message.content)
+  }
+
+  private async onEdit(message: any) {
+    await this.syncToEditor(message.content)
+  }
+
+  private async onResetConfig() {
+    await this.context.globalState.update(KeyVditorOptions, {})
+  }
+
+  private async onSave(message: any) {
+    await this.syncToEditor(message.content)
+    await this.document.save()
+  }
+
+  private async onEditInVscode() {
+    // Open the source AND jump to the caret's line (task 16). Same column as
+    // the visual editor, matching the previous open-in-place behavior.
+    await revealCaretInSource(
+      this.webviewPanel,
+      this.activeUri,
+      vscode.ViewColumn.Active,
+    )
+  }
+
+  private async onNavigateBack() {
+    await vscode.commands.executeCommand('workbench.action.navigateBack')
+  }
+
+  private async onOpenSettings() {
+    await vscode.commands.executeCommand('markdown-editor.openSettings')
+  }
+
+  private async onListWikiPages() {
+    const wikiRoot = getWikiRoot(this.document.uri)
+    if (!wikiRoot) {
+      return
+    }
+    const allPages = await collectWikiMarkdownFiles(wikiRoot)
+    allPages.sort((a, b) =>
+      NodePath.basename(a.fsPath).localeCompare(NodePath.basename(b.fsPath)),
+    )
+    const picked = await vscode.window.showQuickPick(
+      allPages.map((page) => ({
+        label: NodePath.basename(page.fsPath, NodePath.extname(page.fsPath)),
+        description: vscode.workspace.asRelativePath(page, false),
+        uri: page,
+      })),
+      {
+        title: 'Wiki Pages',
+        placeHolder: 'Select a wiki page to open',
+      },
+    )
+    if (picked?.uri) {
+      await vscode.commands.executeCommand(
+        'vscode.openWith',
+        picked.uri,
+        MarkdownEditorViewType,
+      )
+    }
+  }
+
+  private async onUpload(message: any) {
+    if (!ensureCanWriteFiles(this.activeUri)) {
+      return
+    }
+    const assetsFolder = MarkdownEditorProvider.getAssetsFolder(this.activeUri)
+    try {
+      await vscode.workspace.fs.createDirectory(vscode.Uri.file(assetsFolder))
+    } catch (error) {
+      debug('upload: createDirectory failed', error)
+      showError(`Invalid image folder: ${assetsFolder}`)
+      return // can't write into a folder we failed to create
+    }
+    await Promise.all(
+      message.files.map(async (file: any) => {
+        const content = Buffer.from(file.base64, 'base64')
+        return vscode.workspace.fs.writeFile(
+          vscode.Uri.file(NodePath.join(assetsFolder, file.name)),
+          content,
+        )
+      }),
+    )
+    this.webviewPanel.webview.postMessage({
+      command: 'uploaded',
+      files: message.files.map((file: any) =>
+        NodePath.relative(
+          NodePath.dirname(this.activeFsPath),
+          NodePath.join(assetsFolder, file.name),
+        ).replace(/\\/g, '/'),
+      ),
+    })
+  }
+
+  private async onOpenLink(message: any) {
+    let url = message.href
+    if (!/^https?:/i.test(url)) {
+      url = NodePath.resolve(NodePath.dirname(this.activeFsPath), url)
+    }
+    await vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(url))
+  }
+
+  private async onOpenWikilink(message: any) {
+    const resolution = await resolveWikiLink(
+      this.document.uri,
+      String(message.target),
+    )
+
+    switch (resolution.kind) {
+      case 'disabled':
+        showError(
+          `Wiki links are only enabled for Markdown files inside a wiki folder.`,
+        )
+        break
+      case 'invalid':
+        showError(`Invalid wiki link target.`)
+        break
+      case 'missing': {
+        const createChoice = await vscode.window.showWarningMessage(
+          `Wiki page "${message.target}" was not found under "${vscode.workspace.asRelativePath(
+            resolution.root,
+            false,
+          )}".`,
+          'Create Page',
+        )
+        if (createChoice === 'Create Page') {
+          if (!ensureCanWriteFiles(this.document.uri)) {
+            break
+          }
+          const newFileName = `${resolution.key.replace(/\//g, '-')}.md`
+          const newFileUri = vscode.Uri.joinPath(resolution.root, newFileName)
+          const heading = resolution.key
+            .replace(/-/g, ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase())
+          await vscode.workspace.fs.writeFile(
+            newFileUri,
+            Buffer.from(`# ${heading}\n`),
+          )
+          await vscode.commands.executeCommand(
+            'vscode.openWith',
+            newFileUri,
+            MarkdownEditorViewType,
+          )
+        }
+        break
+      }
+      case 'ambiguous': {
+        const picked = await vscode.window.showQuickPick(
+          resolution.candidates.map((candidate) => ({
+            label: NodePath.basename(candidate.fsPath),
+            description: vscode.workspace.asRelativePath(candidate, false),
+            uri: candidate,
+          })),
+          {
+            title: `Select wiki page for "${message.target}"`,
+            placeHolder: 'Multiple wiki pages match this link.',
+          },
+        )
+
+        if (picked?.uri) {
+          await vscode.commands.executeCommand(
+            'vscode.openWith',
+            picked.uri,
+            MarkdownEditorViewType,
+          )
+        }
+        break
+      }
+      case 'resolved':
+        await vscode.commands.executeCommand(
+          'vscode.openWith',
+          resolution.target,
+          MarkdownEditorViewType,
+        )
+        break
+    }
+  }
+
   start() {
     const document = this.document
     const webviewPanel = this.webviewPanel
@@ -729,221 +943,20 @@ export class EditorSession {
     // central switch (Open/Closed). Step 4 will promote these into on<Command>
     // methods; for now they stay inline.
     const messageHandlers: Record<string, (message: any) => unknown> = {
-      ready: async () => {
-        let wikiInit: any = this.wiki
-        if (this.wiki.enabled) {
-          const root = getWikiRoot(document.uri)
-          if (root) {
-            const pageKeys = await getWikiPageKeys(root)
-            wikiInit = { ...this.wiki, pageKeys }
-          }
-        }
-        await this.postUpdate({
-          type: 'init',
-          cdn: this.vditorBaseUri,
-          options: {
-            ...MarkdownEditorProvider.collectConfigOptions(),
-            ...MarkdownEditorProvider.sanitizeVditorOptions(
-              this.context.globalState.get(KeyVditorOptions),
-            ),
-          },
-          theme: currentThemeKind(),
-          wiki: wikiInit,
-        })
-      },
-      'save-options': async (message) => {
-        await this.context.globalState.update(
-          KeyVditorOptions,
-          MarkdownEditorProvider.sanitizeVditorOptions(message.options),
-        )
-      },
-      info: (message) => {
-        vscode.window.showInformationMessage(message.content)
-      },
-      error: (message) => {
-        showError(message.content)
-      },
-      edit: async (message) => {
-        await this.syncToEditor(message.content)
-      },
-      'reset-config': async () => {
-        await this.context.globalState.update(KeyVditorOptions, {})
-      },
-      save: async (message) => {
-        await this.syncToEditor(message.content)
-        await document.save()
-      },
-      'edit-in-vscode': async () => {
-        // Open the source AND jump to the caret's line (task 16). Same column as
-        // the visual editor, matching the previous open-in-place behavior.
-        await revealCaretInSource(
-          webviewPanel,
-          this.activeUri,
-          vscode.ViewColumn.Active,
-        )
-      },
-      'navigate-back': async () => {
-        await vscode.commands.executeCommand('workbench.action.navigateBack')
-      },
-      'open-settings': async () => {
-        await vscode.commands.executeCommand('markdown-editor.openSettings')
-      },
-      'list-wiki-pages': async () => {
-        const wikiRoot = getWikiRoot(document.uri)
-        if (!wikiRoot) {
-          return
-        }
-        const allPages = await collectWikiMarkdownFiles(wikiRoot)
-        allPages.sort((a, b) =>
-          NodePath.basename(a.fsPath).localeCompare(
-            NodePath.basename(b.fsPath),
-          ),
-        )
-        const picked = await vscode.window.showQuickPick(
-          allPages.map((page) => ({
-            label: NodePath.basename(
-              page.fsPath,
-              NodePath.extname(page.fsPath),
-            ),
-            description: vscode.workspace.asRelativePath(page, false),
-            uri: page,
-          })),
-          {
-            title: 'Wiki Pages',
-            placeHolder: 'Select a wiki page to open',
-          },
-        )
-        if (picked?.uri) {
-          await vscode.commands.executeCommand(
-            'vscode.openWith',
-            picked.uri,
-            MarkdownEditorViewType,
-          )
-        }
-      },
-      upload: async (message) => {
-        if (!ensureCanWriteFiles(this.activeUri)) {
-          return
-        }
-        const assetsFolder = MarkdownEditorProvider.getAssetsFolder(
-          this.activeUri,
-        )
-        try {
-          await vscode.workspace.fs.createDirectory(
-            vscode.Uri.file(assetsFolder),
-          )
-        } catch (error) {
-          debug('upload: createDirectory failed', error)
-          showError(`Invalid image folder: ${assetsFolder}`)
-          return // can't write into a folder we failed to create
-        }
-        await Promise.all(
-          message.files.map(async (file: any) => {
-            const content = Buffer.from(file.base64, 'base64')
-            return vscode.workspace.fs.writeFile(
-              vscode.Uri.file(NodePath.join(assetsFolder, file.name)),
-              content,
-            )
-          }),
-        )
-        webviewPanel.webview.postMessage({
-          command: 'uploaded',
-          files: message.files.map((file: any) =>
-            NodePath.relative(
-              NodePath.dirname(this.activeFsPath),
-              NodePath.join(assetsFolder, file.name),
-            ).replace(/\\/g, '/'),
-          ),
-        })
-      },
-      'open-link': async (message) => {
-        let url = message.href
-        if (!/^https?:/i.test(url)) {
-          url = NodePath.resolve(NodePath.dirname(this.activeFsPath), url)
-        }
-        await vscode.commands.executeCommand(
-          'vscode.open',
-          vscode.Uri.parse(url),
-        )
-      },
-      'open-wikilink': async (message) => {
-        const resolution = await resolveWikiLink(
-          document.uri,
-          String(message.target),
-        )
-
-        switch (resolution.kind) {
-          case 'disabled':
-            showError(
-              `Wiki links are only enabled for Markdown files inside a wiki folder.`,
-            )
-            break
-          case 'invalid':
-            showError(`Invalid wiki link target.`)
-            break
-          case 'missing': {
-            const createChoice = await vscode.window.showWarningMessage(
-              `Wiki page "${message.target}" was not found under "${vscode.workspace.asRelativePath(
-                resolution.root,
-                false,
-              )}".`,
-              'Create Page',
-            )
-            if (createChoice === 'Create Page') {
-              if (!ensureCanWriteFiles(document.uri)) {
-                break
-              }
-              const newFileName = `${resolution.key.replace(/\//g, '-')}.md`
-              const newFileUri = vscode.Uri.joinPath(
-                resolution.root,
-                newFileName,
-              )
-              const heading = resolution.key
-                .replace(/-/g, ' ')
-                .replace(/\b\w/g, (c) => c.toUpperCase())
-              await vscode.workspace.fs.writeFile(
-                newFileUri,
-                Buffer.from(`# ${heading}\n`),
-              )
-              await vscode.commands.executeCommand(
-                'vscode.openWith',
-                newFileUri,
-                MarkdownEditorViewType,
-              )
-            }
-            break
-          }
-          case 'ambiguous': {
-            const picked = await vscode.window.showQuickPick(
-              resolution.candidates.map((candidate) => ({
-                label: NodePath.basename(candidate.fsPath),
-                description: vscode.workspace.asRelativePath(candidate, false),
-                uri: candidate,
-              })),
-              {
-                title: `Select wiki page for "${message.target}"`,
-                placeHolder: 'Multiple wiki pages match this link.',
-              },
-            )
-
-            if (picked?.uri) {
-              await vscode.commands.executeCommand(
-                'vscode.openWith',
-                picked.uri,
-                MarkdownEditorViewType,
-              )
-            }
-            break
-          }
-          case 'resolved':
-            await vscode.commands.executeCommand(
-              'vscode.openWith',
-              resolution.target,
-              MarkdownEditorViewType,
-            )
-            break
-        }
-      },
+      ready: () => this.onReady(),
+      'save-options': (message) => this.onSaveOptions(message),
+      info: (message) => this.onInfo(message),
+      error: (message) => this.onError(message),
+      edit: (message) => this.onEdit(message),
+      'reset-config': () => this.onResetConfig(),
+      save: (message) => this.onSave(message),
+      'edit-in-vscode': () => this.onEditInVscode(),
+      'navigate-back': () => this.onNavigateBack(),
+      'open-settings': () => this.onOpenSettings(),
+      'list-wiki-pages': () => this.onListWikiPages(),
+      upload: (message) => this.onUpload(message),
+      'open-link': (message) => this.onOpenLink(message),
+      'open-wikilink': (message) => this.onOpenWikilink(message),
     }
 
     this.disposables.push(

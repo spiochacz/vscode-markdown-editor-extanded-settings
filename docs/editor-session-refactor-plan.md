@@ -57,7 +57,7 @@ fixing the main **SRP** debt and unlocking unit tests of the editor logic.
   `private` methods reading the fields. `start()` shrinks to: html + state init +
   build watchers + register listeners.
 
-- [ ] **Step 4 — message handlers → methods.** The `messageHandlers` map entries
+- [x] **Step 4 — message handlers → methods.** (done) The `messageHandlers` map entries
   become `private on<Command>(message)` methods; the map binds to them. `start()`
   no longer defines handler bodies.
 
