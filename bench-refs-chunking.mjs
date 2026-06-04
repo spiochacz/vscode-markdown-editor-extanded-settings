@@ -244,4 +244,42 @@ A [collapsed][] style ref near the end of the content area before the defs.
     '  (asm is total CPU summed over chunks; the editor never blocks on it — it yields per frame)',
   )
 }
+// --- 3) optional: a REAL file passed on argv (task 49 Verify step) ---
+//   node bench-refs-chunking.mjs out/vmarkd-big-instant-preview-test.md
+// EXACT DOM match may be false on footnote-heavy docs (per-chunk footnote numbering
+// is local — documented benign); the load-bearing checks are resolved-count parity
+// and round-trip MD match (no save corruption).
+const realPath = process.argv[2]
+if (realPath) {
+  const doc = fs.readFileSync(realPath, 'utf8')
+  for (let i = 0; i < 3; i++) lute.Md2VditorIRDOM('# warm\n\ntext')
+  const monoRuns = []
+  const asmRuns = []
+  let mono
+  let asm
+  for (let r = 0; r < 3; r++) {
+    const t = performance.now()
+    mono = lute.Md2VditorIRDOM(doc)
+    monoRuns.push(performance.now() - t)
+  }
+  for (let r = 0; r < 3; r++) {
+    const t = performance.now()
+    asm = assemble(doc, 4000)
+    asmRuns.push(performance.now() - t)
+  }
+  const mMono = median(monoRuns)
+  const mAsm = median(asmRuns)
+  console.log(
+    `\n[real file ${realPath} — ${(doc.length / 1024).toFixed(0)}KB, cap=4000]`,
+  )
+  console.log('  resolved mono/asm   :', resolved(mono), '/', resolved(asm))
+  console.log('  EXACT DOM match     :', mono === asm)
+  console.log(
+    '  round-trip MD match :',
+    lute.VditorIRDOM2Md(mono) === lute.VditorIRDOM2Md(asm),
+  )
+  console.log(
+    `  time mono / asm     : ${mMono.toFixed(1)}ms / ${mAsm.toFixed(1)}ms (${(mMono / mAsm).toFixed(2)}x)`,
+  )
+}
 console.log('')

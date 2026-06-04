@@ -1,9 +1,16 @@
 # Task: Streaming / incremental render for large documents (approach B)
 
-> **Status:** 🟡 Implemented (2026-06-03), pending real-file QA. Webview chunked
-> render in `media-src/src/stream-render.ts` + pure logic in `stream-chunk.ts`
-> (unit-tested); wired into `main.ts` init. Build + 274 unit tests green. Not yet
-> exercised on a real 100 KB+ file in the live extension.
+> **Status:** ✅ Done (QA'd 2026-06-04). Webview chunked render in
+> `media-src/src/stream-render.ts` + pure logic in `stream-chunk.ts` (unit-tested);
+> wired into `main.ts` init. **E2e** (`media-src/e2e/stream.spec.ts`) drives the real
+> `streamRenderIR` over a multi-chunk doc and verifies: cross-chunk ref/footnote
+> resolution (def injection), full `getValue()` after stream (no truncation), and a
+> streamed-in **mermaid** block rendering to SVG (upstream #1906). **Bench on the
+> user's real 319 KB file** (`node bench-refs-chunking.mjs out/…big-instant-preview-test.md`):
+> refs resolved 3/3, **EXACT DOM match vs monolithic = true**, round-trip MD identical,
+> 2389ms→2162ms (prose is ~linear so total CPU win is modest — the gain is splitting
+> the one multi-second freeze into ~80 sub-frame chunks). Editable-during-stream is
+> still v2 (see gotchas).
 > **Source:** user request (2026-06-03) — large markdown files block for seconds
 > on open (single monolithic Lute parse). Follow-up to the host-side instant-paint
 > overlay ([task 50](50-host-side-prerender.md), `src/lute-host.ts`), which masks
