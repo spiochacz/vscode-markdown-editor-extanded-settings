@@ -1,10 +1,13 @@
 # Task: Flush the debounced edit on Ctrl/Cmd+S (avoid saving stale content)
 
-> **Status:** ✅ Done. Debounced edit factored into `media-src/src/pending-edit.ts`
-> (`createPendingEdit` — schedule/flush); a capture-phase, non-suppressing Ctrl/Cmd+S
-> keybind (`media-src/src/save-flush.ts`, wired at `main.ts` bottom) flushes it before
-> VS Code saves. Unit-tested (pending-edit + save-flush specs). ^x/^v staleness not
-> pursued (cut already handled by `fixCut`; verify if it ever surfaces).
+> **Status:** ✅ Done (+ corrected via e2e). `createPendingEdit` (`pending-edit.ts`)
+> + a capture-phase, non-suppressing Ctrl/Cmd+S keybind (`save-flush.ts`) flush before
+> VS Code saves. **Correction the e2e harness surfaced:** Vditor only calls its `input`
+> hook after its own ~800ms throttle (`undoDelay`), so a save right after typing has
+> NOTHING pending yet — the original "flush only if pending" still saved stale content.
+> `flush()` now posts the editor's **live `getValue()` unconditionally** (clearing any
+> timer; host dedupes a no-op write). Unit-tested + e2e (`media-src/e2e/save-flush.spec.ts`
+> types then immediately Ctrl+S, asserts the just-typed text is posted). ^x/^v not pursued.
 > **Source:** `GongXunSS/vditor` (`feat-vscode`) — `handlerHistoryEvent` force-flush on ^s/^x/^v.
 > **Value / Risk:** 🟢 fixes a real save-correctness bug / low (reuses the existing capture-phase keybind pattern)
 

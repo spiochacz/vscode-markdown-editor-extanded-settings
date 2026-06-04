@@ -11,9 +11,11 @@ import * as utils from '../src/utils'
 import { createToolbar } from '../src/toolbar'
 import { t } from '../src/lang'
 import { applyBodyOptions, swapStyle } from '../src/live-config'
+import { applyLinkOpenSetting } from '../src/link-open-policy'
 
 ;(window as any).__utils = utils
 ;(window as any).__createToolbar = createToolbar
 ;(window as any).__t = t
 ;(window as any).__liveConfig = { applyBodyOptions, swapStyle }
+;(window as any).__linkPolicy = { applyLinkOpenSetting }
 ;(window as any).__ready = true

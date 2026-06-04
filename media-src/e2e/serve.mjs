@@ -19,6 +19,10 @@ const built = await esbuild.build({
     bench: path.join(__dirname, 'bench-harness.ts'),
     outline: path.join(__dirname, 'outline-harness.ts'),
     prerender: path.join(__dirname, 'prerender-harness.ts'),
+    link: path.join(__dirname, 'link-harness.ts'),
+    list: path.join(__dirname, 'list-harness.ts'),
+    math: path.join(__dirname, 'math-harness.ts'),
+    'save-flush': path.join(__dirname, 'save-flush-harness.ts'),
   },
   bundle: true,
   format: 'iife',
@@ -37,6 +41,10 @@ const behaviorsHtml = fs.readFileSync(path.join(__dirname, 'behaviors.html'))
 const benchHtml = fs.readFileSync(path.join(__dirname, 'bench.html'))
 const outlineHtml = fs.readFileSync(path.join(__dirname, 'outline.html'))
 const prerenderHtml = fs.readFileSync(path.join(__dirname, 'prerender.html'))
+const linkHtml = fs.readFileSync(path.join(__dirname, 'link.html'))
+const listHtml = fs.readFileSync(path.join(__dirname, 'list.html'))
+const mathHtml = fs.readFileSync(path.join(__dirname, 'math.html'))
+const saveFlushHtml = fs.readFileSync(path.join(__dirname, 'save-flush.html'))
 
 const types = {
   '.js': 'text/javascript',
@@ -73,6 +81,22 @@ const server = http.createServer((req, res) => {
   if (url === '/prerender.html') {
     res.setHeader('content-type', 'text/html')
     return res.end(prerenderHtml)
+  }
+  if (url === '/link.html') {
+    res.setHeader('content-type', 'text/html')
+    return res.end(linkHtml)
+  }
+  if (url === '/list.html') {
+    res.setHeader('content-type', 'text/html')
+    return res.end(listHtml)
+  }
+  if (url === '/math.html') {
+    res.setHeader('content-type', 'text/html')
+    return res.end(mathHtml)
+  }
+  if (url === '/save-flush.html') {
+    res.setHeader('content-type', 'text/html')
+    return res.end(saveFlushHtml)
   }
   if (bundles[url]) {
     res.setHeader('content-type', 'text/javascript')

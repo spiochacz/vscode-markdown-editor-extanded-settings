@@ -3,12 +3,13 @@
 > **Status:** 🟡 Partial. **Null-deref crash fixed** — `item.querySelector("input").remove()`
 > → `?.remove()` via esbuild `onLoad` (`media-src/esbuild-shared.mjs` `patchListToggle`/
 > `fixListToggle`, anchored + guard; transform unit-tested; confirmed in the minified
-> bundle). **Still open (follow-up):** the sibling-scope bug (toggle mutates ALL `<li>`
-> not just the clicked one) — the proper fix is the Aloklok "split the item into a new
-> sibling list" rewrite, which is entangled with the whole-list `replaceChild` and is
-> risky to land blind. Needs runtime repro (no webview test harness exists) before the
-> invasive DOM-logic patch. The `?.` change alone removes the crash; the cosmetic
-> sibling-strip remains.
+> bundle); **e2e** (`media-src/e2e/list.spec.ts`) toggles list type on a mixed list and
+> asserts no throw. **Still open (follow-up):** the sibling-scope bug (toggle mutates ALL
+> `<li>` not just the clicked one) — the proper fix is the Aloklok "split the item into a
+> new sibling list" rewrite, entangled with the whole-list `replaceChild`. A `test.fixme`
+> placeholder exists in `list.spec.ts`; a faithful repro must drive the toolbar (ir/process.ts
+> re-parses the DOM after listToggle — calling listToggle in isolation leaves the IR
+> mid-transform). The `?.` change alone removes the crash; the sibling-strip remains.
 > **Source:** `Aloklok/vditor` fork (4 ahead, 0 behind) — pure bugfixes (commits `474336c1`, `eaf07e42`, `71e16a38`). Verified still present in our `vditor@3.11.2` (evidence in Problem below).
 > **Value / Risk:** 🟢 fixes a real, reproducible bug in code we ship / low (string-replace patch, no behaviour change beyond the fix)
 

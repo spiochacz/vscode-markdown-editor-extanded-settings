@@ -5,13 +5,17 @@
 > `window.open(markerText)` already routed to the host (OS browser). So this is a
 > deliberate UX change, not a dead-click fix. **Shipped:** Typora-style split — plain
 > click edits, **Ctrl/Cmd+click follows the link**. Implemented as an esbuild source
-> patch (`patchIrLinkClick`/`fixIrLinkClick`) gating IR's open branch on the platform
-> modifier (config alone can't do it — Vditor's `return` after the link block is
-> unconditional, and `link.click` isn't handed the event). `link.click` posts
-> `open-link` (`media-src/src/link-click.ts`, unit-tested; patch transform-tested +
-> guarded; gate confirmed in bundle). **Follow-up:** WYSIWYG/SV use a different code
-> path (`wysiwyg/index.ts:441`, real `<a href>`) and are NOT yet aligned — modes are
-> inconsistent until that's done. Runtime UX needs manual verification (no webview harness).
+> patch. **Now configurable + aligned across modes** (`vmarkd.editor.linkOpenWithModifier`,
+> default true): a runtime policy (`media-src/src/link-open-policy.ts`, installed as
+> `window.__vmarkdShouldOpenLink`) is read by the IR **and** WYSIWYG source patches
+> (`patchIrLinkClick`/`patchWysiwygLinkClick`) and by the document-level `fixLinkClick`
+> (real `<a href>` in WYSIWYG/SV/preview), so all consumers agree. `fixLinkClick` now
+> always cancels native navigation and opens only when the policy allows; `openLinkFromMarker`
+> skips real anchors (fixLinkClick handles them) to avoid a double-post. **e2e**
+> (`media-src/e2e/link.spec.ts`) covers IR + WYSIWYG × both policy settings (plain vs
+> Ctrl+click, exactly one post, correct URL); patches transform-tested + guarded; gate
+> confirmed in bundle; existing `fixLinkClick` behaviours spec updated to be policy-aware.
+> SV follows the same policy via `fixLinkClick` (its preview links are real anchors).
 > **Source:** `tuanpmt/vditor` `d9ba522` "fix(ir): click on link opens edit mode instead of opening URL". Verified still present in our `vditor@3.11.2` (evidence in Problem below).
 > **Value / Risk:** 🟢🟢 fixes a dead interaction in our exact environment / low (config-level, no source patch)
 
