@@ -24,6 +24,7 @@ const built = await esbuild.build({
     math: path.join(__dirname, 'math-harness.ts'),
     'save-flush': path.join(__dirname, 'save-flush-harness.ts'),
     'wysiwyg-input': path.join(__dirname, 'wysiwyg-input-harness.ts'),
+    tab: path.join(__dirname, 'tab-harness.ts'),
   },
   bundle: true,
   format: 'iife',
@@ -49,6 +50,7 @@ const saveFlushHtml = fs.readFileSync(path.join(__dirname, 'save-flush.html'))
 const wysiwygInputHtml = fs.readFileSync(
   path.join(__dirname, 'wysiwyg-input.html'),
 )
+const tabHtml = fs.readFileSync(path.join(__dirname, 'tab.html'))
 
 const types = {
   '.js': 'text/javascript',
@@ -105,6 +107,10 @@ const server = http.createServer((req, res) => {
   if (url === '/wysiwyg-input.html') {
     res.setHeader('content-type', 'text/html')
     return res.end(wysiwygInputHtml)
+  }
+  if (url === '/tab.html') {
+    res.setHeader('content-type', 'text/html')
+    return res.end(tabHtml)
   }
   if (bundles[url]) {
     res.setHeader('content-type', 'text/javascript')
