@@ -87,11 +87,31 @@ test.describe('confirm() dialog', () => {
 })
 
 test.describe('fixLinkClick()', () => {
-  test('intercepts a normal link click and posts open-link', async ({
+  // Default 'modifier' policy (task 62): a plain click is left for editing; only
+  // Ctrl/Cmd+click follows the link.
+  test('modifier policy: Ctrl+click posts open-link, plain click does not', async ({
     page,
   }) => {
     await gotoBehaviors(page)
     await page.evaluate(() => {
+      ;(window as any).__linkPolicy.applyLinkOpenSetting(true) // modifier mode
+      document.body.innerHTML =
+        '<a id="lnk" href="https://example.com/docs/page">link</a>'
+      ;(window as any).__utils.fixLinkClick()
+    })
+    await page.locator('#lnk').click() // plain — must NOT open
+    expect(await posted(page)).toEqual([])
+    await page.locator('#lnk').click({ modifiers: ['Control'] })
+    expect(await posted(page)).toContainEqual({
+      command: 'open-link',
+      href: 'https://example.com/docs/page',
+    })
+  })
+
+  test('click policy: a plain click posts open-link', async ({ page }) => {
+    await gotoBehaviors(page)
+    await page.evaluate(() => {
+      ;(window as any).__linkPolicy.applyLinkOpenSetting(false) // legacy click mode
       document.body.innerHTML =
         '<a id="lnk" href="https://example.com/docs/page">link</a>'
       ;(window as any).__utils.fixLinkClick()
