@@ -290,11 +290,17 @@ function initVditor(msg) {
   }
   // Cache is IR-only; re-entering IR (after a mode switch) rebaselines.
   let lastSerializeMode: string | null = null
+  const isLargeDoc = () =>
+    (activeModeElement(window.vditor)?.textContent?.length ?? 0) >=
+    LARGE_DOC_CHARS
   const serializeForHost = (): string => {
     const mode = window.vditor.getCurrentMode?.()
-    if (mode === 'ir') {
-      if (lastSerializeMode !== 'ir') incrementalIr.invalidate()
-      lastSerializeMode = 'ir'
+    // Incremental serialize only pays off on a large doc (≥ LARGE_DOC_CHARS, ~500 lines):
+    // there the full getValue() is super-linear and freezes. Below that it's already
+    // instant, so skip the diff machinery (and its tiny drift risk) and serialize directly.
+    if (mode === 'ir' && isLargeDoc()) {
+      if (lastSerializeMode !== 'ir-incremental') incrementalIr.invalidate()
+      lastSerializeMode = 'ir-incremental'
       return incrementalIr.update(irTopBlocks())
     }
     lastSerializeMode = mode ?? null
@@ -306,9 +312,6 @@ function initVditor(msg) {
 
   const postEdit = () =>
     vscode.postMessage({ command: 'edit', content: serializeForHost() })
-  const isLargeDoc = () =>
-    (activeModeElement(window.vditor)?.textContent?.length ?? 0) >=
-    LARGE_DOC_CHARS
   const pendingEdit = createPendingEdit({
     wait: 250,
     onIdle: async () => {
