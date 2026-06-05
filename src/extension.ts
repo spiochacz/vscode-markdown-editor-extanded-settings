@@ -240,11 +240,12 @@ function setupStatusBar(context: vscode.ExtensionContext): () => void {
     99,
   )
   mode.name = 'vMarkd Editor Mode'
-  // task 69: large-document marker (incremental serialization regime). Left-aligned,
-  // and only shown for large docs — its presence alone signals "incremental mode".
+  // task 69: large-document marker (incremental serialization regime). Right-aligned with
+  // a higher priority than reading-time (100) so it sits to the LEFT of the word counter;
+  // shown only for large docs — its presence alone signals "incremental mode".
   const docSize = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Left,
-    100,
+    vscode.StatusBarAlignment.Right,
+    101,
   )
   docSize.name = 'vMarkd Document Size'
   context.subscriptions.push(reading, mode, docSize)

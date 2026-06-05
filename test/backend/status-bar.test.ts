@@ -4,8 +4,8 @@ import { mock, Uri, TabInputCustom, TabInputText } from './vscode-mock'
 
 const VIEW_TYPE = 'vmarkd.editor'
 
-// statusBarItems are created in order:
-// [reading (prio 100), mode (prio 99), docSize (prio 98 — task 69 large/normal marker)]
+// statusBarItems are created in order: [reading, mode, docSize]. docSize (task 69) is
+// Right-aligned at prio 101 so it renders to the LEFT of the reading-time/word counter.
 function bar() {
   const [reading, modeItem, docSize] = mock.calls.statusBarItems
   return { reading, modeItem, docSize }
