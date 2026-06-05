@@ -1,9 +1,12 @@
 // Drag-resize handle for the Vditor outline panel (tasks 07/08).
 //
-// Inserts a thin draggable handle on the inner edge of .vditor-outline (left
-// edge when outline is on the right, right edge when on the left). Dragging
-// sets --me-outline-width on the body and calls `onResize(width)` so the
-// caller can persist the value. Min 100px, max 50% viewport.
+// Inserts a thin draggable handle as a SIBLING of .vditor-outline (not a child
+// — Vditor uses `this.element.lastElementChild` as the outline render target,
+// so appending a child inside it hijacks the render). The handle is positioned
+// absolute relative to the outline's parent (the vditor content wrapper).
+//
+// Min 100px, max 50% viewport. Calls `onResize(width)` on mouseup so the
+// caller can persist the value.
 
 const MIN_WIDTH = 100
 const MAX_WIDTH_RATIO = 0.5
@@ -13,12 +16,18 @@ export function setupOutlineResize(
   position: 'left' | 'right',
   onResize: (width: number) => void,
 ): void {
-  if (outlineEl.querySelector('.outline-resize-handle')) return
+  const parent = outlineEl.parentElement
+  if (!parent || parent.querySelector('.outline-resize-handle')) return
 
   const handle = document.createElement('div')
   handle.className = 'outline-resize-handle'
   handle.dataset.side = position === 'right' ? 'left' : 'right'
-  outlineEl.appendChild(handle)
+
+  if (position === 'right') {
+    parent.insertBefore(handle, outlineEl)
+  } else {
+    outlineEl.insertAdjacentElement('afterend', handle)
+  }
 
   let dragging = false
   let startX = 0

@@ -340,13 +340,6 @@
             "default": "right",
             "description": "Which side the outline panel opens on."
           },
-          "vmarkd.outline.width": {
-            "type": "number",
-            "default": 200,
-            "minimum": 100,
-            "maximum": 800,
-            "description": "Width of the outline panel, in pixels."
-          },
           "vmarkd.outline.highlight": {
             "type": "boolean",
             "default": true,

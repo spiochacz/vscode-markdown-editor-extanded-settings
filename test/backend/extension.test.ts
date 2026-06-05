@@ -109,7 +109,6 @@ describe('resolveCustomTextEditor — init handshake', () => {
       'editor.headingMarkers': false,
       'editor.fontSize': 'vditor',
       'outline.position': 'left',
-      'outline.width': 320,
       'outline.openByDefault': true,
       'outline.highlight': false,
     })
@@ -120,7 +119,6 @@ describe('resolveCustomTextEditor — init handshake', () => {
       showHeadingMarkers: false,
       fontSize: 'vditor',
       outlinePosition: 'left',
-      outlineWidth: 320,
       showOutlineByDefault: true,
       outlineHighlight: false,
     })

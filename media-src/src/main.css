@@ -354,19 +354,20 @@ body[data-highlight-headings="1"] .vditor-reset h6 {
   flex-shrink: 0;
 }
 
-/* Drag-resize handle on the inner edge of the outline panel. */
+/* Drag-resize handle — sits as a flex sibling between the editor and the
+   outline (NOT inside .vditor-outline, because Vditor uses lastElementChild
+   as its render target). Zero width in flow so it doesn't push layout. */
 .outline-resize-handle {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  cursor: col-resize;
+  width: 6px;
+  margin-left: -3px;
+  margin-right: -3px;
+  position: relative;
+  flex-shrink: 0;
   z-index: 10;
+  cursor: col-resize;
   background: transparent;
   transition: background 0.15s;
 }
-.outline-resize-handle[data-side="left"] { left: 0; }
-.outline-resize-handle[data-side="right"] { right: 0; }
 .outline-resize-handle:hover,
 body.outline-resizing .outline-resize-handle {
   background: var(--vscode-sash-hoverBorder, rgba(0, 122, 204, 0.6));
@@ -380,6 +381,17 @@ body.outline-resizing .vditor-ir,
 body.outline-resizing .vditor-wysiwyg,
 body.outline-resizing .vditor-sv {
   pointer-events: none;
+}
+
+/* Fix: the webview's user-agent stylesheet can render native list markers
+   (disclosure triangles) on outline <li> even though Vditor sets list-style:
+   none on <ul>. Kill them at the <li> level + the ::marker pseudo. */
+.vditor-outline li {
+  list-style: none !important;
+}
+.vditor-outline li::marker {
+  content: none;
+  display: none;
 }
 
 /* Outline navigation flash (task 13): brief highlight on the clicked heading. */
