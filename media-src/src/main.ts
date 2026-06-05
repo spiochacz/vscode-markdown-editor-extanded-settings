@@ -817,20 +817,13 @@ function handleDiffInfo(msg: any) {
 }
 
 function handleUploaded(msg: any) {
-  msg.files.forEach((f) => {
+  msg.files.forEach((f: string) => {
     if (f.endsWith('.wav')) {
       vditor.insertValue(
         `\n\n<audio controls="controls" src="${f}"></audio>\n\n`,
       )
     } else {
-      const i = new Image()
-      i.src = f
-      i.onload = () => {
-        vditor.insertValue(`\n\n![](${f})\n\n`)
-      }
-      i.onerror = () => {
-        vditor.insertValue(`\n\n[${f.split('/').slice(-1)[0]}](${f})\n\n`)
-      }
+      vditor.insertValue(`\n\n![](${f})\n\n`)
     }
   })
 }

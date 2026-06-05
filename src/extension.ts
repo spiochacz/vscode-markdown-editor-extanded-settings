@@ -1559,7 +1559,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       // base-uri (no fallback → was effectively unset). Lute's Sanitize lets
       // <iframe>/<embed>/<object>/<base> through, so pin them explicitly — the
       // posture must not hinge on a single default-src line.
-      `frame-src 'none'; object-src 'none'; base-uri 'none';">`
+      `frame-src 'none'; object-src 'none'; base-uri ${csp};">`
 
     return (
       `<!DOCTYPE html>
