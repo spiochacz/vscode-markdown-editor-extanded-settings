@@ -1,9 +1,6 @@
 import * as vscode from 'vscode'
-import {
-  collectWikiMarkdownFiles,
-  getWikiKeys,
-  normalizeWikiLookupKey,
-} from './wiki'
+import { collectWikiMarkdownFiles, getWikiKeys } from './wiki'
+import { extractWikiTargets } from './wiki-core'
 
 const WIKI_GLOB = '**/*.{md,markdown}'
 const DEBOUNCE_MS = 50
@@ -127,20 +124,7 @@ export class WikiCache {
   }
 }
 
-// Extract wiki link targets from markdown text (same regex as custom-renderer.ts).
-const WikiLinkPattern = /\[\[([^[\]\n]+?)\]\]/g
-export function extractWikiTargets(markdown: string): string[] {
-  WikiLinkPattern.lastIndex = 0
-  const keys = new Set<string>()
-  let m: RegExpExecArray | null
-  // biome-ignore lint/suspicious/noAssignInExpressions: idiomatic regex exec loop
-  while ((m = WikiLinkPattern.exec(markdown)) !== null) {
-    const [target] = m[1].split('|', 1)
-    const key = normalizeWikiLookupKey(target.trim())
-    if (key) keys.add(key)
-  }
-  return Array.from(keys)
-}
+export { extractWikiTargets } from './wiki-core'
 
 // Resolve only the targets found in the current document against a cache.
 // Returns the subset of keys that exist. O(targets), not O(all wiki files).

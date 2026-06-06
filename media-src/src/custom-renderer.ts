@@ -1,12 +1,12 @@
 import type Vditor from 'vditor'
+import {
+  WikiLinkPattern,
+  normalizeWikiLookupKey,
+  parseWikiPayload,
+} from '../../src/wiki-core'
 
 // Lute's walk-status enum: WalkStop = 0, WalkSkipChildren = 1, WalkContinue = 2.
-// Returning 0 here (the old value) was actually WalkStop — it halted the AST walk
-// after our text node, so any sibling rendered AFTER it was dropped. Single-text-node
-// paragraphs survived (only the auto-closed </p> was lost), which masked the bug, but
-// reference links / inline links / bold followed by text truncated the whole block.
 const WalkContinue = 2
-const WikiLinkPattern = /\[\[([^[\]\n]+?)\]\]/g
 
 interface WikiRendererOptions {
   enabled: boolean
@@ -92,10 +92,10 @@ export function wikiTextToHtml(
     }
 
     const source = match[0]
-    const payload = parseWikiLinkPayload(match[1])
+    const payload = parseWikiPayload(match[1])
     const displayText = payload.label || payload.target
     const isMissing = knownPages
-      ? !knownPages.has(normalizeWikiTarget(payload.target))
+      ? !knownPages.has(normalizeWikiLookupKey(payload.target))
       : false
 
     fragments.push(
@@ -114,15 +114,6 @@ export function wikiTextToHtml(
   }
 
   return fragments.join('')
-}
-
-function parseWikiLinkPayload(payload: string) {
-  const [target, label] = payload.split('|', 2).map((part) => part.trim())
-
-  return {
-    target,
-    label: label || '',
-  }
 }
 
 function escapeHTML(str: string) {
@@ -148,14 +139,4 @@ const HtmlEscapeMap: Record<string, string> = {
   '>': '&gt;',
   '"': '&quot;',
   "'": '&#39;',
-}
-
-function normalizeWikiTarget(target: string): string {
-  return target
-    .trim()
-    .toLowerCase()
-    .replace(/\.(?:md|markdown)$/i, '')
-    .replace(/[ _]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
 }

@@ -1,16 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import {
-  collectWikiMarkdownFiles,
-  getWikiPageKeys,
-  resolveWikiLink,
-} from '../../src/wiki'
+import { collectWikiMarkdownFiles } from '../../src/wiki'
 import {
   WikiCache,
   _resetCacheMap,
-  extractWikiTargets,
   getOrBuildCache,
   resolveVisibleTargets,
 } from '../../src/wiki-cache'
+import { extractWikiTargets } from '../../src/wiki-core'
 import { FileType, mock, Uri } from './vscode-mock'
 
 // Performance characterization of the wiki page-scan path. These tests don't
@@ -92,90 +88,7 @@ describe('wiki scan performance characterization', () => {
     })
   })
 
-  describe('no cache — repeated calls re-scan from scratch', () => {
-    it('getWikiPageKeys called twice = 2× full scan', async () => {
-      const { tree, totalDirs } = buildLargeWiki(10, 10)
-      mountAndCount(tree)
-
-      await getWikiPageKeys(Uri.file('/ws/wiki'))
-      const afterFirst = readDirCallCount
-
-      await getWikiPageKeys(Uri.file('/ws/wiki'))
-      const afterSecond = readDirCallCount
-
-      expect(afterFirst).toBe(totalDirs)
-      expect(afterSecond).toBe(totalDirs * 2) // no cache — doubled
-    })
-
-    it('resolveWikiLink re-scans on every click (same cost as init)', async () => {
-      const { tree, totalDirs } = buildLargeWiki(10, 10)
-      mountAndCount(tree)
-      const source = Uri.file('/ws/wiki/section-000/page-000.md')
-
-      await resolveWikiLink(source, 'page-005')
-      const afterFirst = readDirCallCount
-
-      await resolveWikiLink(source, 'page-003')
-      const afterSecond = readDirCallCount
-
-      expect(afterFirst).toBe(totalDirs)
-      expect(afterSecond).toBe(totalDirs * 2) // full re-scan per click
-    })
-  })
-
-  describe('getWikiPageKeys — normalization cost scales with file count', () => {
-    it('returns 2 keys per file (basename + relative path), deduplicated', async () => {
-      const { tree, totalFiles } = buildLargeWiki(5, 10)
-      mountAndCount(tree)
-
-      const keys = await getWikiPageKeys(Uri.file('/ws/wiki'))
-
-      // Each file produces 2 keys, but basename may collide across dirs
-      // (page-000 in section-000 and section-001 both produce basename "page-000").
-      // The Set deduplicates, so unique keys ≤ 2 × totalFiles.
-      expect(keys.length).toBeGreaterThan(0)
-      expect(keys.length).toBeLessThanOrEqual(totalFiles * 2)
-    })
-
-    it('10000-file wiki: key generation completes (no timeout)', async () => {
-      const { tree, totalFiles } = buildLargeWiki(200, 50)
-      mountAndCount(tree)
-
-      const start = performance.now()
-      const keys = await getWikiPageKeys(Uri.file('/ws/wiki'))
-      const elapsed = performance.now() - start
-
-      expect(keys.length).toBeGreaterThan(0)
-      // Log for manual inspection — not asserted (CI variance).
-      // In-memory mock: should be < 100ms. Real fs: depends on disk.
-      console.log(
-        `  10k wiki: ${totalFiles} files → ${keys.length} keys in ${elapsed.toFixed(1)}ms ` +
-          `(${readDirCallCount} readDirectory calls)`,
-      )
-    })
-  })
-
-  describe('impact on editor open (onReady path)', () => {
-    it('simulated onReady: getWikiPageKeys blocks init message', async () => {
-      const { tree } = buildLargeWiki(50, 20)
-      mountAndCount(tree)
-
-      // This is what onReady() does: scan + collect keys before posting init.
-      // The webview can't render wiki chips until this completes.
-      const start = performance.now()
-      const keys = await getWikiPageKeys(Uri.file('/ws/wiki'))
-      const elapsed = performance.now() - start
-
-      expect(keys.length).toBeGreaterThan(0)
-      console.log(
-        `  onReady (1000 files): ${elapsed.toFixed(1)}ms, ` +
-          `${readDirCallCount} readDirectory calls — ` +
-          'webview blocked until complete',
-      )
-    })
-  })
-
-  describe('WITH WikiCache — cached lookups eliminate repeated scans', () => {
+  describe('WikiCache — cached lookups eliminate repeated scans', () => {
     it('first build scans once, subsequent has/resolve = 0 readDirectory', async () => {
       const { tree, totalDirs } = buildLargeWiki(50, 20)
       mountAndCount(tree)

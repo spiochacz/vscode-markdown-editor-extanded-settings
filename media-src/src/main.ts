@@ -89,7 +89,7 @@ let lastInitMsg: any = null
 // Shared mutable knownPages set — passed to setupCustomRenderer and updated by
 // the host's wiki-update message. Because the custom renderer captures the Set
 // reference (not a copy), mutating it here updates chip rendering live.
-let wikiKnownPages: Set<string> = new Set()
+const wikiKnownPages: Set<string> = new Set()
 
 // Reveal-in-Source (task 16): remember the caret inside the editor. When the
 // command runs from VS Code chrome (the toolbar button), focus leaves the

@@ -12,12 +12,16 @@ describe('rewriteWikiChipsToSource', () => {
 
   it('handles pipe syntax: [[Target|Label]] round-trips correctly', () => {
     const html = `<p>${chip('Target', '[[Target|Display Label]]', 'Display Label')}</p>`
-    expect(rewriteWikiChipsToSource(html)).toBe('<p>[[Target|Display Label]]</p>')
+    expect(rewriteWikiChipsToSource(html)).toBe(
+      '<p>[[Target|Display Label]]</p>',
+    )
   })
 
   it('handles multiple chips in one block', () => {
     const html = `<p>${chip('A', '[[A]]')} and ${chip('B', '[[B]]')} and ${chip('C', '[[C]]')}</p>`
-    expect(rewriteWikiChipsToSource(html)).toBe('<p>[[A]] and [[B]] and [[C]]</p>')
+    expect(rewriteWikiChipsToSource(html)).toBe(
+      '<p>[[A]] and [[B]] and [[C]]</p>',
+    )
   })
 
   it('handles missing-page chips (data-wiki-missing="1")', () => {

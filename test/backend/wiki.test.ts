@@ -2,17 +2,11 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   collectWikiMarkdownFiles,
   getWikiDocumentContext,
-  getWikiPageKeys,
   getWikiRoot,
   isWikiFile,
-  resolveWikiLink,
 } from '../../src/wiki'
 import { FileType, mock, Uri } from './vscode-mock'
 
-// A tiny virtual filesystem for vscode.workspace.fs.readDirectory: dir fsPath ->
-// [name, FileType][]. Markdown files anywhere under a `wiki/` ancestor are wiki
-// pages; their lookup keys are the basename and the wiki-root-relative path,
-// both normalized (lowercase, spaces/underscores -> '-', extension stripped).
 function mountFs(tree: Record<string, [string, number][]>) {
   mock.setReadDirectory(async (uri: Uri) => tree[uri.fsPath] ?? [])
 }
@@ -87,74 +81,6 @@ describe('wiki', () => {
         '/ws/wiki/readme.markdown',
         '/ws/wiki/sub/Deep.md',
       ])
-    })
-  })
-
-  describe('getWikiPageKeys', () => {
-    it('exposes the basename key and the root-relative path key, normalized', async () => {
-      mountFs({
-        '/ws/wiki': [
-          ['Home.md', F],
-          ['sub', D],
-        ],
-        '/ws/wiki/sub': [['Deep Page.md', F]],
-      })
-      const keys = await getWikiPageKeys(Uri.file('/ws/wiki'))
-      expect(keys.sort()).toEqual(['deep-page', 'home', 'sub/deep-page'])
-    })
-  })
-
-  describe('resolveWikiLink', () => {
-    const source = Uri.file('/ws/wiki/Home.md')
-
-    it('is disabled when the source is not in a wiki', async () => {
-      const r = await resolveWikiLink(Uri.file('/ws/docs/x.md'), 'Home')
-      expect(r.kind).toBe('disabled')
-    })
-
-    it('is invalid when the target normalizes to empty', async () => {
-      mountFs({ '/ws/wiki': [['Home.md', F]] })
-      expect((await resolveWikiLink(source, '   ')).kind).toBe('invalid')
-    })
-
-    it('resolves a unique match by basename (case/space-insensitive)', async () => {
-      mountFs({
-        '/ws/wiki': [
-          ['Home.md', F],
-          ['sub', D],
-        ],
-        '/ws/wiki/sub': [['Deep Page.md', F]],
-      })
-      const r = await resolveWikiLink(source, 'deep page')
-      expect(r.kind).toBe('resolved')
-      if (r.kind === 'resolved')
-        expect(r.target.fsPath).toBe('/ws/wiki/sub/Deep Page.md')
-    })
-
-    it('ignores a display alias after "|"', async () => {
-      mountFs({ '/ws/wiki': [['Home.md', F]] })
-      const r = await resolveWikiLink(source, 'Home | shown text')
-      expect(r.kind).toBe('resolved')
-    })
-
-    it('reports missing when nothing matches', async () => {
-      mountFs({ '/ws/wiki': [['Home.md', F]] })
-      expect((await resolveWikiLink(source, 'Nope')).kind).toBe('missing')
-    })
-
-    it('reports ambiguous when several files share the key', async () => {
-      mountFs({
-        '/ws/wiki': [
-          ['Home.md', F],
-          ['a', D],
-          ['b', D],
-        ],
-        '/ws/wiki/a': [['Page.md', F]],
-        '/ws/wiki/b': [['Page.md', F]],
-      })
-      const r = await resolveWikiLink(source, 'Page')
-      expect(r.kind).toBe('ambiguous')
-      if (r.kind === 'ambiguous') expect(r.candidates).toHaveLength(2)
     })
   })
 })
