@@ -1,6 +1,11 @@
 import type Vditor from 'vditor'
 
-const WalkContinue = 0
+// Lute's walk-status enum: WalkStop = 0, WalkSkipChildren = 1, WalkContinue = 2.
+// Returning 0 here (the old value) was actually WalkStop — it halted the AST walk
+// after our text node, so any sibling rendered AFTER it was dropped. Single-text-node
+// paragraphs survived (only the auto-closed </p> was lost), which masked the bug, but
+// reference links / inline links / bold followed by text truncated the whole block.
+const WalkContinue = 2
 const WikiLinkPattern = /\[\[([^[\]\n]+?)\]\]/g
 
 interface WikiRendererOptions {
