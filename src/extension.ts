@@ -24,6 +24,7 @@ import {
   disposeAllCaches,
   extractWikiTargets,
   getOrBuildCache,
+  invalidateCache,
   resolveVisibleTargets,
 } from './wiki-cache'
 
@@ -677,6 +678,7 @@ export class EditorSession {
   private currentWatcher: vscode.Disposable | undefined
   private externalCssWatcher: vscode.Disposable | undefined
   private wiki!: ReturnType<typeof getWikiDocumentContext>
+  private lastWikiRoot: vscode.Uri | undefined
   private workspaceFolder: vscode.WorkspaceFolder | undefined
   private vditorBaseUri!: string
   private panelEntry!: ActivePanelEntry
@@ -845,6 +847,7 @@ export class EditorSession {
     const wikiRoot = this.wiki.enabled
       ? getWikiRoot(this.document.uri)
       : undefined
+    this.lastWikiRoot = wikiRoot
     if (wikiRoot) {
       const cache = await getOrBuildCache(wikiRoot, () => {
         // Watcher fired (file create/delete) — push updated keys to webview.
@@ -1187,6 +1190,16 @@ export class EditorSession {
         // unrelated folder's change doesn't reload editors it doesn't affect.
         if (!e.affectsConfiguration('vmarkd', this.activeUri)) {
           return
+        }
+        // Wiki config changed (enabled/root) → invalidate the old cache so the
+        // re-init (triggered by postLiveConfig → handleConfigChanged) builds a
+        // fresh cache for the potentially-changed root.
+        if (e.affectsConfiguration('vmarkd.wiki')) {
+          if (this.lastWikiRoot) {
+            invalidateCache(this.lastWikiRoot)
+            this.lastWikiRoot = undefined
+          }
+          this.wiki = getWikiDocumentContext(this.document.uri)
         }
         this.postLiveConfig()
         this.refreshExternalCssWatchers()
