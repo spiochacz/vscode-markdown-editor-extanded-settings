@@ -159,6 +159,16 @@ export async function getOrBuildCache(
   return building
 }
 
+export function invalidateCache(root: vscode.Uri): void {
+  const key = root.fsPath
+  const existing = cacheByRoot.get(key)
+  if (existing) {
+    existing.dispose()
+    cacheByRoot.delete(key)
+  }
+  buildingByRoot.delete(key)
+}
+
 export function disposeAllCaches(): void {
   for (const cache of cacheByRoot.values()) cache.dispose()
   cacheByRoot.clear()

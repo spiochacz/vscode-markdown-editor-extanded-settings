@@ -4,6 +4,7 @@ import {
   _resetCacheMap,
   extractWikiTargets,
   getOrBuildCache,
+  invalidateCache,
   resolveVisibleTargets,
 } from '../../src/wiki-cache'
 import { FileType, mock, Uri } from './vscode-mock'
@@ -137,6 +138,55 @@ describe('getOrBuildCache — singleton per root', () => {
     expect(c1).toBe(c2)
     expect(readDirCount).toBe(1)
     c1.dispose()
+  })
+})
+
+describe('invalidateCache — clears a specific root', () => {
+  let readDirCount: number
+
+  beforeEach(() => {
+    mock.reset()
+    _resetCacheMap()
+    readDirCount = 0
+    mock.setReadDirectory(async (uri: Uri) => {
+      readDirCount++
+      const tree: Record<string, [string, number][]> = {
+        '/ws': [['A.md', F]],
+        '/ws/docs': [['B.md', F]],
+      }
+      return tree[uri.fsPath] ?? []
+    })
+  })
+
+  it('forces a rebuild on the next getOrBuildCache call', async () => {
+    const c1 = await getOrBuildCache(Uri.file('/ws'))
+    const afterBuild = readDirCount
+    expect(c1.has('a')).toBe(true)
+
+    invalidateCache(Uri.file('/ws'))
+
+    const c2 = await getOrBuildCache(Uri.file('/ws'))
+    expect(c2).not.toBe(c1) // new instance
+    expect(readDirCount).toBe(afterBuild + 1) // one re-scan
+    c2.dispose()
+  })
+
+  it('does not affect caches for other roots', async () => {
+    const c1 = await getOrBuildCache(Uri.file('/ws'))
+    const c2 = await getOrBuildCache(Uri.file('/ws/docs'))
+    const afterBuild = readDirCount
+
+    invalidateCache(Uri.file('/ws'))
+
+    // /ws/docs cache still valid
+    const c2Again = await getOrBuildCache(Uri.file('/ws/docs'))
+    expect(c2Again).toBe(c2)
+    expect(readDirCount).toBe(afterBuild) // no re-scan for docs
+    c2.dispose()
+  })
+
+  it('is safe to call on a root that has no cache', () => {
+    expect(() => invalidateCache(Uri.file('/nonexistent'))).not.toThrow()
   })
 })
 
