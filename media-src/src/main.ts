@@ -20,6 +20,7 @@ import { createToolbar } from './toolbar'
 import { fixTableIr } from './fix-table-ir'
 import { isMac } from './platform'
 import { setupCustomRenderer } from './custom-renderer'
+import { patchLuteSerialize } from './wiki-serialize'
 import { setupOutlineFlash, FLASH_CLASS } from './outline'
 import { setupOutlineResize } from './outline-resize'
 import { setupToolbarDismiss } from './toolbar-dismiss'
@@ -88,7 +89,7 @@ let lastInitMsg: any = null
 // Shared mutable knownPages set — passed to setupCustomRenderer and updated by
 // the host's wiki-update message. Because the custom renderer captures the Set
 // reference (not a copy), mutating it here updates chip rendering live.
-let wikiKnownPages: Set<string> = new Set()
+const wikiKnownPages: Set<string> = new Set()
 
 // Reveal-in-Source (task 16): remember the caret inside the editor. When the
 // command runs from VS Code chrome (the toolbar button), focus leaves the
@@ -598,6 +599,7 @@ function initVditor(msg) {
           enabled: wikiEnabled,
           knownPages: wikiEnabled ? wikiKnownPages : undefined,
         })
+        if (wikiEnabled) patchLuteSerialize(window.vditor)
 
         if (willStream) {
           // Large doc (task 49): stream it in chunk-by-chunk. Keep the instant-paint

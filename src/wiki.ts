@@ -1,5 +1,8 @@
 import * as NodePath from 'node:path'
 import * as vscode from 'vscode'
+import { normalizeWikiLookupKey, wikiKeysForRelativePath } from './wiki-core'
+
+export { normalizeWikiLookupKey } from './wiki-core'
 
 const WikiFolderName = 'wiki'
 const SupportedMarkdownExtensions = new Set(['.md', '.markdown'])
@@ -8,18 +11,6 @@ export interface WikiDocumentContext {
   enabled: boolean
   rootLabel?: string
 }
-
-export type WikiLinkResolution =
-  | { kind: 'disabled' }
-  | { kind: 'invalid' }
-  | { kind: 'missing'; key: string; root: vscode.Uri }
-  | {
-      kind: 'ambiguous'
-      key: string
-      root: vscode.Uri
-      candidates: vscode.Uri[]
-    }
-  | { kind: 'resolved'; key: string; root: vscode.Uri; target: vscode.Uri }
 
 export function isWikiFile(uri: vscode.Uri | undefined) {
   return Boolean(uri && isSupportedMarkdownUri(uri) && getWikiRoot(uri))
@@ -58,101 +49,18 @@ export function getWikiRoot(uri: vscode.Uri) {
   }
 }
 
-export async function resolveWikiLink(
-  sourceUri: vscode.Uri,
-  rawTarget: string,
-): Promise<WikiLinkResolution> {
-  const root = getWikiRoot(sourceUri)
-  if (!root) {
-    return { kind: 'disabled' }
-  }
-
-  const targetKey = normalizeWikiLookupKey(extractWikiTarget(rawTarget))
-  if (!targetKey) {
-    return { kind: 'invalid' }
-  }
-
-  const files = await collectWikiMarkdownFiles(root)
-  const matches = files.filter((candidate) =>
-    getWikiKeys(root, candidate).includes(targetKey),
-  )
-  matches.sort((left, right) => left.fsPath.localeCompare(right.fsPath))
-
-  if (matches.length === 0) {
-    return {
-      kind: 'missing',
-      key: targetKey,
-      root,
-    }
-  }
-
-  if (matches.length > 1) {
-    return {
-      kind: 'ambiguous',
-      key: targetKey,
-      root,
-      candidates: matches,
-    }
-  }
-
-  return {
-    kind: 'resolved',
-    key: targetKey,
-    root,
-    target: matches[0],
-  }
-}
-
 function isSupportedMarkdownUri(uri: vscode.Uri) {
   return SupportedMarkdownExtensions.has(
     NodePath.extname(uri.path).toLowerCase(),
   )
 }
 
-function extractWikiTarget(rawTarget: string) {
-  const [target] = rawTarget.split('|', 1)
-  return target.trim()
-}
-
-function stripMarkdownExtension(value: string) {
-  return value.replace(/\.(?:md|markdown)$/i, '')
-}
-
-function normalizeWikiSegment(value: string) {
-  return stripMarkdownExtension(value)
-    .trim()
-    .toLowerCase()
-    .replace(/[ _]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-export function normalizeWikiLookupKey(value: string) {
-  return value
-    .replace(/\\/g, '/')
-    .split('/')
-    .map((segment) => normalizeWikiSegment(segment))
-    .filter(Boolean)
-    .join('/')
-}
-
 export function getWikiKeys(root: vscode.Uri, candidate: vscode.Uri) {
-  const extension = NodePath.extname(candidate.fsPath)
-  const basename = NodePath.basename(candidate.fsPath, extension)
   const relativePath = NodePath.relative(root.fsPath, candidate.fsPath).replace(
     /\\/g,
     '/',
   )
-  const relativeWithoutExtension = relativePath.slice(0, -extension.length)
-
-  return Array.from(
-    new Set(
-      [
-        normalizeWikiLookupKey(relativeWithoutExtension),
-        normalizeWikiLookupKey(basename),
-      ].filter(Boolean),
-    ),
-  )
+  return wikiKeysForRelativePath(relativePath)
 }
 
 export async function collectWikiMarkdownFiles(root: vscode.Uri) {
@@ -185,13 +93,16 @@ export async function collectWikiMarkdownFiles(root: vscode.Uri) {
   return results
 }
 
-export async function getWikiPageKeys(root: vscode.Uri): Promise<string[]> {
-  const files = await collectWikiMarkdownFiles(root)
-  const keys = new Set<string>()
-  for (const file of files) {
-    for (const key of getWikiKeys(root, file)) {
-      keys.add(key)
-    }
-  }
-  return Array.from(keys)
+// Create a new wiki page file with a heading derived from the normalized key.
+export async function createWikiPage(
+  root: vscode.Uri,
+  key: string,
+): Promise<vscode.Uri> {
+  const newFileName = `${key.replace(/\//g, '-')}.md`
+  const newFileUri = vscode.Uri.joinPath(root, newFileName)
+  const heading = key
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+  await vscode.workspace.fs.writeFile(newFileUri, Buffer.from(`# ${heading}\n`))
+  return newFileUri
 }

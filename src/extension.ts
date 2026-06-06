@@ -14,6 +14,7 @@ import {
 import { minimalDiffWriteback } from './minimal-diff-writeback'
 import { escapeTableSpanPipes } from './table-pipe-escape'
 import {
+  createWikiPage,
   getWikiDocumentContext,
   getWikiRoot,
   isWikiFile,
@@ -1051,15 +1052,7 @@ export class EditorSession {
       )
       if (createChoice === 'Create Page') {
         if (!ensureCanWriteFiles(this.document.uri)) return
-        const newFileName = `${key.replace(/\//g, '-')}.md`
-        const newFileUri = vscode.Uri.joinPath(root, newFileName)
-        const heading = key
-          .replace(/-/g, ' ')
-          .replace(/\b\w/g, (c) => c.toUpperCase())
-        await vscode.workspace.fs.writeFile(
-          newFileUri,
-          Buffer.from(`# ${heading}\n`),
-        )
+        const newFileUri = await createWikiPage(root, key)
         await vscode.commands.executeCommand(
           'vscode.openWith',
           newFileUri,
