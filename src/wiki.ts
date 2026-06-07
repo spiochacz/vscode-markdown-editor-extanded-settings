@@ -71,7 +71,16 @@ export async function collectWikiMarkdownFiles(root: vscode.Uri) {
     const current = queue.shift()
     if (!current) continue
 
-    const entries = await vscode.workspace.fs.readDirectory(current)
+    let entries: [string, vscode.FileType][]
+    try {
+      entries = await vscode.workspace.fs.readDirectory(current)
+    } catch {
+      // The directory may have vanished — e.g. a configured wiki root
+      // (`vmarkd.wiki.root`) that no longer exists, or a subfolder removed
+      // mid-scan. Treat it as empty instead of aborting the whole scan (which
+      // would otherwise crash WikiCache.build → the editor session's onReady).
+      continue
+    }
     for (const [name, type] of entries) {
       const entryUri = vscode.Uri.joinPath(current, name)
       if ((type & vscode.FileType.Directory) !== 0) {

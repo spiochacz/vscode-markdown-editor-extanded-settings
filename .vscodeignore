@@ -17,8 +17,11 @@ media/vditor/dist/js/mathjax
 
 # Internal docs / working files — never ship in the .vsix
 AGENTS.md
+docs
 tasks
 test-results
-out/*.md
+out/**/*.md
 out/**/*.test.js
-out/**/*.test.js.map
+
+# Source maps — debug artifacts, not needed at runtime
+**/*.map

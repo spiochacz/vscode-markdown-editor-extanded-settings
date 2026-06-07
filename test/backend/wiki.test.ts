@@ -92,5 +92,25 @@ describe('wiki', () => {
         '/ws/sub/Deep.md',
       ])
     })
+
+    it('returns [] when the wiki root is missing (configured path deleted) — no throw', async () => {
+      // `vmarkd.wiki.root` points at a directory that no longer exists.
+      mock.setReadDirectory(async () => {
+        throw new Error('ENOENT: no such file or directory')
+      })
+      await expect(
+        collectWikiMarkdownFiles(Uri.file('/ws/gone')),
+      ).resolves.toEqual([])
+    })
+
+    it('skips a subfolder that vanishes mid-scan instead of aborting', async () => {
+      mock.setReadDirectory(async (uri: Uri) => {
+        if (uri.fsPath === '/ws')
+          return [['Home.md', F] as [string, number], ['ghost', D]]
+        throw new Error('ENOENT') // /ws/ghost disappeared between listing and scan
+      })
+      const files = await collectWikiMarkdownFiles(Uri.file('/ws'))
+      expect(files.map((f) => f.fsPath)).toEqual(['/ws/Home.md'])
+    })
   })
 })
