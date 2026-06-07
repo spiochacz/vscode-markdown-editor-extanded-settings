@@ -25,6 +25,14 @@ interop rewrite (Vditor's `undo` needs a default import or `new DiffMatchPatch()
 throws — guarded by `e2e/undo-interop.spec.ts`). `e2e/serve.mjs` reuses the same
 config so the harnesses bundle Vditor identically.
 
+Beyond that interop fix, `esbuild-shared.mjs` carries a set of **anchored source
+patches** to Vditor applied at bundle time (link-open policy gate, list-toggle
+null-guard, outline-current highlight, KaTeX resilience, content-based paste-as-code,
+IR-input serialize hand-off, English About dialog, …). Each patch throws at build
+time if its anchor string drifts on a Vditor bump, so a version upgrade fails loudly
+instead of silently no-op'ing; they're unit-covered by
+`test/backend/vditor-source-patches.test.ts`.
+
 ## Package manager
 
 **npm only — minimal tooling.** npm installs deps and `node build.mjs` drives the
@@ -46,6 +54,24 @@ npm --prefix media-src exec -- playwright install chromium   # e2e browser (once
 
 `node build.mjs` is required before e2e: the table harness serves real Vditor
 assets from `media/vditor/`. (The unit suite does not need it.)
+
+---
+
+## Lint, format & types
+
+Biome handles both lint and format; type-checking is a separate `tsc` pass.
+
+```bash
+npm run lint:ci     # Biome check, no writes — the exact CI gate (whole tree)
+npm run lint:fix    # Biome check --write — apply safe lint + format fixes
+npm run format      # Biome format --write — formatting only
+npm run typecheck   # tsc -p media-src/tsconfig.typecheck.json (no emit, webview)
+```
+
+`lint:ci` runs over the **whole tree**, so a clean local run must pass before you
+push — drift in files you didn't touch will still fail CI. `node build.mjs`
+type-checks the host (`tsc -p ./`) as part of the build; `npm run typecheck`
+covers the webview side.
 
 ---
 
@@ -215,17 +241,63 @@ All four `coverage-*.ts` files are no-ops unless `E2E_COVERAGE` is set.
 
 ## CI
 
-`.github/workflows/main.yml` (manual deploy) runs the full gate:
-`npm ci` (root + `media-src`) → `node build.mjs` → `npm test`.
-`publish.yml` (on `v*` tags) installs the same way and publishes.
+Three GitHub Actions workflows (`.github/workflows/`):
 
-E2e is not wired into CI yet (needs a browser install step) — run it locally.
+- **`ci.yml`** — the gate, on every PR and push to `main`. Installs root +
+  `media-src`, then in order: `npm audit --audit-level=moderate` (both trees) →
+  `npm run lint:ci` (Biome, whole tree) → `node build.mjs` (compiles the host with
+  `tsc` + bundles the webview) → `npm test` (unit) → `npm --prefix media-src run
+  test:e2e` (Playwright chromium, browser binaries cached). **E2e now runs in CI**
+  — keep it green locally.
+- **`main.yml`** ("Deploy Extension") — manual (`workflow_dispatch`). Builds and
+  publishes to **Open VSX** and the **VS Marketplace** (`OPEN_VSX_TOKEN` /
+  `VS_MARKETPLACE_TOKEN` secrets).
+- **`publish.yml`** — on `v*` tags. Builds and publishes to the Marketplace via
+  `VSCE_PAT` (falls back to `VS_MARKETPLACE_TOKEN`).
+
+`ci.yml` enforces lint + audit on the whole tree, so run `npm run lint:ci` and a
+clean `npm audit` locally before pushing — pre-existing drift in untouched files
+still fails the gate.
+
+---
+
+## Releasing
+
+Publisher `spiochacz`; Marketplace id `spiochacz.vmarkd`. A publish needs a
+**`VSCE_PAT`** (Azure DevOps Personal Access Token, scope *Marketplace → Manage*)
+in a root **`.env`** (git-ignored):
+
+```
+VSCE_PAT=…
+```
+
+One-shot release from a clean `main`:
+
+```bash
+npm run pub          # = scripts/release-marketplace.sh
+```
+
+which runs: `git pull --ff-only` → `npm version patch` (bumps + commits + tags) →
+rewrite the install line in `README.md` → `node build.mjs` → `vsce package` into
+`artifacts/` → `npm run publish:marketplace` (`vsce publish -p $VSCE_PAT`) →
+`git push --tags`. Pushing the `v*` tag also triggers `publish.yml`.
+
+Before releasing, move the `[Unreleased]` block in `CHANGELOG.md` under a dated
+`[x.y.z]` heading. `release:marketplace` is hard-coded to `npm version patch` — for
+a minor/major bump, run the steps manually. To build a local `.vsix` without
+publishing: `npx @vscode/vsce package --out vmarkd-<ver>.vsix`, then
+`code --install-extension vmarkd-<ver>.vsix`.
 
 ---
 
 ## Quick reference
 
 ```bash
+# lint + types
+npm run lint:ci                # Biome gate (whole tree)
+npm run lint:fix               # apply safe lint + format fixes
+npm run typecheck              # webview tsc (no emit)
+
 # unit
 npm test
 npm run test:coverage          # -> coverage/index.html
@@ -233,4 +305,7 @@ npm run test:coverage          # -> coverage/index.html
 # e2e (from media-src, after `node build.mjs`)
 npm --prefix media-src run test:e2e
 npm --prefix media-src run test:e2e:coverage   # -> media-src/coverage/e2e/index.html
+
+# release (needs VSCE_PAT in .env; from a clean main)
+npm run pub                    # version bump -> build -> package -> publish -> push tags
 ```

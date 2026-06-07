@@ -16,7 +16,7 @@
 // render path. The webview path (B) uses the same GopherJS in a different V8 — same
 // algorithm, so relative chunk-vs-monolith behaviour transfers.
 //
-// Run:  node bench-streaming.mjs
+// Run:  node scripts/bench-streaming.mjs
 
 import * as fs from 'node:fs'
 import * as path from 'node:path'

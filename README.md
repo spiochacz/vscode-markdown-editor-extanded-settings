@@ -1,141 +1,103 @@
 # Visual Markdown Editor (vMarkd)
 
-A standalone fork of [zaaack/vscode-markdown-editor](https://github.com/zaaack/vscode-markdown-editor), substantially extended with new VS Code integration and editor-customisation features.
+**A feature-rich, visual WYSIWYG Markdown editor for VS Code.**
 
-> 🚧 **Under active development.** The feature set is growing; some planned features are still on the roadmap rather than shipped.
+Edit Markdown as a live, formatted document — true WYSIWYG, instant-render, and split views, always in two-way sync with the file on disk. No more juggling raw syntax and a separate preview pane.
 
-## Demo
+Outline navigation, wiki-style `[[links]]`, Git change bars, live theming that follows VS Code, drag-and-drop images, code highlighting, and much more — without leaving the editor you already use.
 
-![demo](./media/hero.png)
+![vmarkd](media/vmarkd.png)
 
 ## Features
 
-- WYSIWYG Markdown editing with Vditor, in IR, WYSIWYG, and split-view modes
-- Live two-way sync with the underlying Markdown file as either side changes
-- Save directly from the editor toolbar
-- Copy rendered HTML or raw Markdown from the editor
-- Configurable image saving: uploaded, pasted, or drag-dropped images are written to a configurable folder
-- Mermaid, KaTeX, Graphviz, ECharts, abc.js, and other Vditor-supported embedded content (with offline/local runtime assets)
-- Layout and theme control: follow the active VS Code theme, switch to a full-width layout, and inject custom CSS
-- Remembered editor preferences, with a reset action to start fresh
-- Extended toolbar actions: copy Markdown, copy HTML, and smarter link insertion
-- Responsive tables that follow the current editor width
-- Extra table-editing controls in IR mode
-- Links opened from the editor are handed off through VS Code
-- Explorer and editor-tab context menu integration
-- Keyboard shortcut for returning to the VS Code text editor (`Ctrl+Alt+E` / `Cmd+Ctrl+E`)
+Built on the [Vditor](https://github.com/Vanessa219/vditor) editor, this plugin adds deep VS Code integration and customization.
 
-For the broader editing/rendering feature set exposed by Vditor, see [vditor](https://github.com/Vanessa219/vditor).
+### Editing
 
-## Install
+- WYSIWYG, instant-render, and split views, kept in two-way sync with the
+  underlying Markdown file.
+- Responsive tables that follow the editor width, with extra table-editing controls.
+- Mermaid, KaTeX, Graphviz, ECharts, abc.js and more — rendered offline from
+  bundled assets.
 
-This fork is packaged independently. Install the generated VSIX directly:
+### Navigation & structure
 
-```bash
-code --install-extension ./artifacts/vmarkd-0.4.4.vsix
+- **Outline panel** in the editor — jump to any heading; configurable side and width.
+- **Markdown Outline in the Explorer sidebar** — a clickable heading tree for the
+  open file.
+- **Search** the document with `Ctrl/Cmd+F`.
+- **Reveal in source** — jump from the visual editor straight to the matching line
+  in the plain-text editor.
+- **Wiki-style `[[links]]`** — clickable page links with autocomplete as you type
+  `[[`, plus one-click creation of missing pages.
 
-```
+### VS Code integration
+
+- **Follows your VS Code theme**, and re-themes live when you switch.
+- **Live settings reload** — config changes apply without reopening the editor.
+- **Git change bars** in the gutter (added / modified vs the last commit).
+- **Status bar** — estimated reading time, live word count, and the current edit mode.
+- **Rename tracking** — the editor follows files moved or renamed in the workspace.
+- **Tab-group aware** — no duplicate tabs; open the editor beside your text editor.
+- **Opt-in** — never takes over your `.md` files; works in untrusted and virtual
+  workspaces.
+- One-key return to the plain-text editor (`Ctrl+Alt+E` / `Cmd+Ctrl+E`).
+
+### Appearance & customization
+
+- **Code-block syntax themes** — 73 highlight.js styles, or auto-follow your
+  light/dark theme.
+- Optional **code-block line numbers**, **heading highlighting** and level markers,
+  and an editor **font size** that follows VS Code's.
+- **Mermaid diagram theme**, **toolbar visibility**, and **full-width layout** toggles.
+- **Custom CSS** inline, plus **external CSS files** with live reload.
+- **Configurable links** — Ctrl/Cmd+click to open and a plain click to edit (or the
+  reverse).
+
+### Images
+
+- Paste, drop, or upload images — saved to a configurable workspace folder.
+- Optional **automatic WebP conversion** and **max-width downscaling** to keep files
+  small.
+
+### Performance
+
+- **Instant preview on open** — the document appears immediately while the live
+  editor loads underneath.
+- **Large documents stay responsive** while editing, and very large files stream in
+  progressively.
+
+### Security
+
+- Hardened, sandboxed webview, with **remote images off by default** to avoid
+  tracking.
+
+See the [changelog](./CHANGELOG.md) for the full list of features and changes.
 
 ## Usage
 
 ### Open the custom editor
 
-- **Explorer**: right-click a Markdown file → **Open with markdown editor**.
-- **Open editor tab**: from a `.md` file, run **Open with…** and pick the markdown editor.
-- **Command Palette**: run `markdown-editor: Open with markdown editor`.
+- **Explorer**: right-click a Markdown file → **Open with vMarkd**.
+- **Open editor tab**: from a `.md` file, run **Open with…** and pick vMarkd.
 
 ### Return to the plain text editor
 
-- Click **Edit In VS Code** in the editor toolbar, or
-- press `Ctrl+Alt+E` (`Cmd+Ctrl+E` on macOS), or
-- run `markdown-editor: Edit in Text Editor` from the Command Palette.
+- Click **Edit In Text Editor** in the editor toolbar, or
+- run `vMarkd: Edit in Text Editor` from the Command Palette.
+- Switch from WYSYWIG to Source in bottom status bar.
 
 ## Configuration
 
-The fork adds and documents these settings under the `markdown-editor` namespace:
-
-### `markdown-editor.imageSaveFolder`
-
-Controls where uploaded images are stored. The default is `assets`, relative to the current Markdown file.
-
-Supported template variables:
-
-- `${projectRoot}`
-- `${file}`
-- `${fileBasenameNoExtension}`
-- `${dir}`
-
-Examples:
-
-```json
-{
-	"markdown-editor.imageSaveFolder": "assets"
-}
-```
-
-```json
-{
-	"markdown-editor.imageSaveFolder": "${projectRoot}/assets"
-}
-```
-
-```json
-{
-	"markdown-editor.imageSaveFolder": "${dir}/${fileBasenameNoExtension}-assets"
-}
-```
-
-### `markdown-editor.useVscodeThemeColor`
-
-Uses the current VS Code theme background color for the editor surface.
-
-```json
-{
-	"markdown-editor.useVscodeThemeColor": true
-}
-```
-
-### `markdown-editor.enableFullWidth`
-
-Enables the fork's full-width layout instead of the narrower centered layout.
-
-```json
-{
-	"markdown-editor.enableFullWidth": true
-}
-```
-
-### `markdown-editor.customCss`
-
-Injects custom CSS directly into the webview. This is useful for typography, spacing, or layout overrides.
-
-```json
-{
-	"markdown-editor.customCss": ".vditor-ir pre.vditor-reset { line-height: 32px; }"
-}
-```
-
-## Toolbar Extensions
-
-In addition to the standard Vditor controls, this fork adds or customises:
-
-- `Save`
-- `Edit In VS Code`
-- `Copy Markdown`
-- `Copy HTML`
-- `Reset config`
-- Smarter Markdown link insertion
-
-## Supported Syntax
-
-See the Vditor demo article for the underlying Markdown feature coverage:
-
-[demo article](https://ld246.com/guide/markdown)
+![settings](media/settings.png)
 
 ## Acknowledgement
 
-- [vscode](https://github.com/microsoft/vscode)
-- [vditor](https://github.com/Vanessa219/vditor)
+- [zaaack/vscode-markdown-editor](https://github.com/zaaack/vscode-markdown-editor) — the project this fork is based on
+- [Vditor](https://github.com/Vanessa219/vditor) — the Markdown editor component
+- [Lute](https://github.com/88250/lute) — the Markdown engine (vendored and pinned)
+- Rendering & highlighting bundled via Vditor: [highlight.js](https://github.com/highlightjs/highlight.js), [Mermaid](https://github.com/mermaid-js/mermaid), [KaTeX](https://github.com/KaTeX/KaTeX), [ECharts](https://github.com/apache/echarts), [abc.js](https://github.com/paulrosen/abcjs), [Graphviz / Viz.js](https://github.com/mdaines/viz.js), [flowchart.js](https://github.com/adrai/flowchart.js), [markmap](https://github.com/markmap/markmap), [plantuml-encoder](https://github.com/markushedvall/plantuml-encoder), [smiles-drawer](https://github.com/reymond-group/smilesDrawer)
+- [VS Code](https://github.com/microsoft/vscode)
 
 ## License
 

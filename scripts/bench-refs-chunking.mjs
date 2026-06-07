@@ -7,7 +7,7 @@
 // byte — same getValue(), no save corruption — at a small cap (many boundaries) and
 // at the production 4 KB cap on a large ref-heavy doc.
 //
-// Loads Lute via `vm` exactly like src/lute-host.ts.  Run:  node bench-refs-chunking.mjs
+// Loads Lute via `vm` exactly like src/lute-host.ts.  Run:  node scripts/bench-refs-chunking.mjs
 
 import * as fs from 'node:fs'
 import * as vm from 'node:vm'
@@ -245,7 +245,7 @@ A [collapsed][] style ref near the end of the content area before the defs.
   )
 }
 // --- 3) optional: a REAL file passed on argv (task 49 Verify step) ---
-//   node bench-refs-chunking.mjs out/vmarkd-big-instant-preview-test.md
+//   node scripts/bench-refs-chunking.mjs out/vmarkd-big-instant-preview-test.md
 // EXACT DOM match may be false on footnote-heavy docs (per-chunk footnote numbering
 // is local — documented benign); the load-bearing checks are resolved-count parity
 // and round-trip MD match (no save corruption).

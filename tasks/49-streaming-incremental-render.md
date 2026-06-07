@@ -6,7 +6,7 @@
 > `streamRenderIR` over a multi-chunk doc and verifies: cross-chunk ref/footnote
 > resolution (def injection), full `getValue()` after stream (no truncation), and a
 > streamed-in **mermaid** block rendering to SVG (upstream #1906). **Bench on the
-> user's real 319 KB file** (`node bench-refs-chunking.mjs out/…big-instant-preview-test.md`):
+> user's real 319 KB file** (`node scripts/bench-refs-chunking.mjs out/…big-instant-preview-test.md`):
 > refs resolved 3/3, **EXACT DOM match vs monolithic = true**, round-trip MD identical,
 > 2389ms→2162ms (prose is ~linear so total CPU win is modest — the gain is splitting
 > the one multi-second freeze into ~80 sub-frame chunks). Editable-during-stream is
@@ -45,7 +45,7 @@ HTML).** Rationale below.
 
 ## Benchmark evidence
 Measured with two harnesses that load Lute via `vm` exactly like `lute-host.ts`:
-`bench-streaming.mjs` (monolithic vs chunked) and `bench-refs-chunking.mjs`
+`scripts/bench-streaming.mjs` (monolithic vs chunked) and `scripts/bench-refs-chunking.mjs`
 (reference correctness). ⚠️ **Both are currently untracked (working tree only)** —
 commit them (e.g. under `bench/`) or recreate from the inlined algorithms above; the
 task does not depend on them surviving, but the Verify step does.
@@ -182,9 +182,9 @@ replacing the constructor `value` path for over-cap docs.
 - Vditor **#1906** — request for **incremental preview update** for streaming LLM output; reporter notes `insertValue` does **not** render mermaid and `insertMd` renders scrambled. We append rendered chunks via `processCodeRender` (`stream-render.ts:35`) — **explicitly verify mermaid (and other diagrams) render correctly in streamed chunks**, since that's the exact upstream pain point. https://github.com/Vanessa219/vditor/issues/1906
 
 ## Verify
-- `node bench-streaming.mjs` — chunked total ≤ monolithic, worst chunk ≤ ~100 ms.
+- `node scripts/bench-streaming.mjs` — chunked total ≤ monolithic, worst chunk ≤ ~100 ms.
   (If the script is gone, recreate from the §Approach `chunkize` impl.)
-- `node bench-refs-chunking.mjs` — referenced-only resolves the full ref count
+- `node scripts/bench-refs-chunking.mjs` — referenced-only resolves the full ref count
   (matches monolithic), faster than mono. Re-run against the user's real large file
   to confirm 1:1 correctness + speedup before shipping.
 - Manual: open a large (100 KB+) table/ref-heavy doc — first screen appears at once,
