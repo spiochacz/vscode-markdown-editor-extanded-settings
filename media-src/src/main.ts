@@ -11,7 +11,7 @@ import {
   saveVditorOptions,
 } from './utils'
 
-import { deepMerge } from './deep-merge'
+import { buildVditorOptions, codeHljsStyle } from './vditor-options'
 import Vditor from 'vditor/src/index'
 import { formatTimestamp } from './format-timestamp'
 import { convertForUpload } from './image-convert'
@@ -152,14 +152,6 @@ function restoreEditorCaretIfLost(): boolean {
 // here — the host strips a stale baked path from saved options (the colors-401
 // fix), which would otherwise leave setContentTheme with an empty path and make
 // it a no-op, so the table/content theme never followed a live theme switch.
-// Resolve the code-block highlight style: the `codeTheme` setting, or — when
-// 'auto'/unset — github/github-dark following the VS Code light/dark theme.
-function codeHljsStyle(theme: 'dark' | 'light', options: any): string {
-  const ct = options?.codeTheme
-  if (!ct || ct === 'auto') return theme === 'dark' ? 'github-dark' : 'github'
-  return ct
-}
-
 function applyVditorTheme(theme: 'dark' | 'light') {
   if (!window.vditor) return
   const cdn = lastInitMsg?.cdn
@@ -331,35 +323,6 @@ function bridgeMonolithicScroll(cap: PrepaintCapture): void {
     cap.stop?.()
   }
   apply()
-}
-
-function buildVditorOptions(msg: any): any {
-  let opts: any = msg.cdn ? { cdn: msg.cdn } : {}
-  const codeStyle = codeHljsStyle(
-    msg.theme === 'dark' ? 'dark' : 'light',
-    msg.options,
-  )
-  if (msg.theme === 'dark') {
-    opts = deepMerge(opts, {
-      theme: 'dark',
-      preview: { theme: { current: 'dark' }, hljs: { style: codeStyle } },
-    })
-  } else {
-    opts = deepMerge(opts, { preview: { hljs: { style: codeStyle } } })
-  }
-  opts = deepMerge(opts, msg.options, {
-    preview: { math: { inlineDigit: true }, actions: [] },
-  })
-  if (msg.options?.codeBlockLineNumbers) {
-    opts = deepMerge(opts, { preview: { hljs: { lineNumber: true } } })
-  }
-  opts = deepMerge(opts, {
-    outline: {
-      enable: msg.options?.showOutlineByDefault === true,
-      position: msg.options?.outlinePosition === 'left' ? 'left' : 'right',
-    },
-  })
-  return opts
 }
 
 function runFinishInit(msg: any): void {
