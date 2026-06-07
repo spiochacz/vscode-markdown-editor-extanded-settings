@@ -18,6 +18,9 @@ Work accumulated since 0.2.32 (the 0.3.x line) — not yet cut into a dated rele
 - Search in the editor: `Ctrl/Cmd+F` wired to the webview find.
 - Outline panel: navigation with click-to-flash, configurable width and side
   (`vmarkd.outline.position`), open-by-default, and a heading-level markers toggle.
+- Markdown Outline sidebar: a clickable heading tree for the open file in the
+  Explorer with click-to-scroll (`vmarkd.outline.treeView`) — a native VS Code
+  view, separate from the in-editor outline panel above.
 - Wiki-style `[[page]]` links: rendered as clickable chips that navigate
   (Ctrl/Cmd+click, or a plain click in preview) and offer to create the page when
   it's missing. An autocomplete dropdown on `[[` lists workspace pages by their
@@ -51,6 +54,10 @@ Work accumulated since 0.2.32 (the 0.3.x line) — not yet cut into a dated rele
 - Configurable link-open behaviour (`vmarkd.editor.linkOpenWithModifier`): by
   default Ctrl/Cmd+click opens the link and a plain click edits it, consistently
   across IR / WYSIWYG / Split modes.
+- Image upload: images pasted or dropped into the editor are saved into the
+  workspace (folder set by `vmarkd.image.saveFolder`, e.g. `${projectRoot}/assets`)
+  and can be auto-converted to WebP and downscaled to a max width
+  (`vmarkd.image.format` / `vmarkd.image.quality` / `vmarkd.image.maxWidth`).
 - About dialogs (English) for vMarkd and the bundled Vditor, surfacing the pinned
   Lute engine version.
 - Status-bar marker for large documents ("Large md"), shown to the left of the
@@ -83,6 +90,8 @@ Work accumulated since 0.2.32 (the 0.3.x line) — not yet cut into a dated rele
 - Upgrade the Lute markdown engine: vendor and pin a prebuilt `lute.min.js` at an
   explicit commit (ahead of the version Vditor ships), built via `build.mjs`.
 - Tab inside a code block now indents instead of escaping editor focus.
+- Copy as HTML / Markdown is routed through the host clipboard so it works inside
+  the webview sandbox.
 
 ### Fixed
 - Source Control diffs open the built-in **text diff** again instead of the visual
@@ -127,6 +136,10 @@ Work accumulated since 0.2.32 (the 0.3.x line) — not yet cut into a dated rele
   previously stay on once it had ever been enabled.
 - The code-block syntax theme (`vmarkd.theme.code`) follows the current setting on
   open instead of briefly flashing a previously-used theme.
+- Uploaded images display inline straight after upload (and the CSP `base-uri` no
+  longer blocks them).
+- Reference-style links (`[text][ref]`) no longer disappear in the rendered
+  preview (a Lute walk returned `WalkStop` instead of `WalkContinue`).
 
 ### Security
 - Bump `esbuild` 0.21 → 0.28 — clears the dev-server advisory
@@ -136,12 +149,16 @@ Work accumulated since 0.2.32 (the 0.3.x line) — not yet cut into a dated rele
 - Hardening: scoped filesystem roots, sanitized custom CSS, CSP + nonce on the
   webview, and levelled logging.
 - Scope webview privileges (command URIs off; postMessage-only, audited).
-- Remote images are off by default (`vmarkd.security.allowRemoteImages`), closing
+- Remote images are off by default (`vmarkd.image.allowRemoteImages`), closing
   the `<img https>` / inline `style url()` exfiltration channel; CSP further
   hardened with `frame-src` / `object-src` / `base-uri 'none'`.
 
 ### Performance
 - `retainContextWhenHidden` memory dial (`vmarkd.advanced.retainHidden`).
+- Instant preview on open: the host pre-renders the document with Lute and shows a
+  read-only preview plus a placeholder toolbar immediately, then swaps to the live
+  editor seamlessly — the file appears at once instead of after Vditor loads.
+  Toggle with `vmarkd.advanced.instantPreview`.
 - Host pre-render cap raised 4 KB → 10 KB, so more pages get an instant
   full-document paint on open (worst-case first paint ~55 ms; see
   `npm run bench:prerender`).
@@ -151,6 +168,9 @@ Work accumulated since 0.2.32 (the 0.3.x line) — not yet cut into a dated rele
   serialize, and edits to large docs reserialize only the changed block
   (incremental, O(block) instead of O(whole doc)) with a full-serialize fallback
   and drift self-heal. A busy cursor covers the rare full reserialize.
+- Stream very large files (~700 KB+) into the editor in chunks instead of one
+  blocking render that could freeze for seconds; read-only with a spinner while it
+  fills in. Auto-activates by size; toggle with `vmarkd.advanced.streamLargeFiles`.
 
 ### Removed
 - Runtime dependencies: jQuery, jquery-confirm, lodash, date-fns,
