@@ -103,13 +103,17 @@ describe('resolveMermaidInit', () => {
   })
 
   it('auto + paired content theme → that palette', () => {
-    const init = resolveMermaidInit('auto', 'github-dark')
-    expect(init?.theme).toBe('base')
-    expect(init?.themeVariables?.background).toBe('#0d1117')
+    const gh = resolveMermaidInit('auto', 'github-dark')
+    expect(gh?.theme).toBe('base')
+    expect(gh?.themeVariables?.background).toBe('#0d1117')
+    // vscode/material are paired too (zinc / one-dark)
+    const vs = resolveMermaidInit('auto', 'vscode-dark-modern')
+    expect(vs?.theme).toBe('base')
+    expect(vs?.themeVariables?.background).toBe('#18181b') // zinc-dark
   })
 
-  it('auto + unpaired content theme → null (mermaid keeps its own light/dark)', () => {
-    expect(resolveMermaidInit('auto', 'vscode-dark-modern')).toBeNull()
+  it('auto + unpaired/unknown content theme → null (mermaid keeps its own light/dark)', () => {
+    expect(resolveMermaidInit('auto', 'no-such-theme')).toBeNull()
     expect(resolveMermaidInit('auto', undefined)).toBeNull()
     expect(resolveMermaidInit(undefined, undefined)).toBeNull()
   })
