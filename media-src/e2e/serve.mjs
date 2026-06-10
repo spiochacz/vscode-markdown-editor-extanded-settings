@@ -30,6 +30,7 @@ const built = await esbuild.build({
     keybugs: path.join(__dirname, 'keybugs-harness.ts'),
     scrolljump: path.join(__dirname, 'scrolljump-harness.ts'),
     mermaid: path.join(__dirname, 'mermaid-harness.ts'),
+    callouts: path.join(__dirname, 'callouts-harness.ts'),
     'image-convert': path.join(__dirname, 'image-convert-harness.ts'),
     width: path.join(__dirname, 'width-harness.ts'),
     wiki: path.join(__dirname, 'wiki-harness.ts'),
@@ -69,6 +70,7 @@ const streamHtml = fs.readFileSync(path.join(__dirname, 'stream.html'))
 const keybugsHtml = fs.readFileSync(path.join(__dirname, 'keybugs.html'))
 const scrolljumpHtml = fs.readFileSync(path.join(__dirname, 'scrolljump.html'))
 const mermaidHarnessHtml = fs.readFileSync(path.join(__dirname, 'mermaid.html'))
+const calloutsHtml = fs.readFileSync(path.join(__dirname, 'callouts.html'))
 const imageConvertHtml = fs.readFileSync(
   path.join(__dirname, 'image-convert.html'),
 )
@@ -163,6 +165,10 @@ const server = http.createServer((req, res) => {
   if (url === '/mermaid.html') {
     res.setHeader('content-type', 'text/html')
     return res.end(mermaidHarnessHtml)
+  }
+  if (url === '/callouts.html') {
+    res.setHeader('content-type', 'text/html')
+    return res.end(calloutsHtml)
   }
   if (url === '/image-convert.html') {
     res.setHeader('content-type', 'text/html')

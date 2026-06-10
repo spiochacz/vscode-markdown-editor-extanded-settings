@@ -1,6 +1,15 @@
 # Task 106 — Callouts / GitHub Alerts (`> [!NOTE]`)
 
-> **Status:** 📋 TODO. Render `> [!NOTE]` / `[!TIP]` / `[!IMPORTANT]` / `[!WARNING]` / `[!CAUTION]`
+> **Status:** 🟡 v1 done (2026-06-10, branch `feat/callouts`). `callouts.ts` (`matchCallout`
+> pure + `applyCallouts` DOM transform) restyles `[!TYPE]` blockquotes → callout box (CSS in
+> main.css, 5 GitHub + Obsidian types, per-type accents, foldable `-`/`+` marked). Wired into
+> `runFinishInit` (`applyCallouts(document.body)`); **display-only, skips `contenteditable`** so
+> the markdown round-trips. Unit (6, matchCallout) + e2e (6, `callouts.spec.ts`: type/title/
+> marker-strip/foldable/plain-untouched/editable-skipped/styled). **Deferred:** live transform of
+> the editable IR blockquote (currently transforms non-editable/preview panes), foldable click-to-
+> toggle JS, codicon icons in the title (CSS hook `--vmarkd-callout-icon` is in place).
+> Original plan:
+> Render `> [!NOTE]` / `[!TIP]` / `[!IMPORTANT]` / `[!WARNING]` / `[!CAUTION]`
 > blockquotes as styled callout boxes — **GitHub-native** (Alerts, 2023) **and** Obsidian-core
 > (callouts / the popular Admonition plugin). The cheapest high-value gap: it's a small
 > transform + CSS, no heavy library.

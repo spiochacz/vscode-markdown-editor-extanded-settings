@@ -636,3 +636,49 @@ body.vmarkd-busy * {
   top: 4px;
   right: 8px;
 }
+
+/* Callouts / GitHub Alerts (task 106). `[!TYPE]` blockquotes get data-callout + classes from
+   callouts.ts; here we draw the box. Display-only (transform runs on non-editable panes). */
+.vditor-reset blockquote[data-callout] {
+  --vmarkd-callout-accent: var(--vscode-textLink-foreground, #4493f8);
+  border-left: 4px solid var(--vmarkd-callout-accent);
+  background: color-mix(in srgb, var(--vmarkd-callout-accent) 8%, transparent);
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.vditor-reset blockquote[data-callout] .vmarkd-callout__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--vmarkd-callout-accent);
+  margin-bottom: 4px;
+}
+.vditor-reset blockquote[data-callout='note'],
+.vditor-reset blockquote[data-callout='info'] {
+  --vmarkd-callout-accent: #4493f8;
+}
+.vditor-reset blockquote[data-callout='tip'],
+.vditor-reset blockquote[data-callout='success'] {
+  --vmarkd-callout-accent: #3fb950;
+}
+.vditor-reset blockquote[data-callout='important'],
+.vditor-reset blockquote[data-callout='question'] {
+  --vmarkd-callout-accent: #ab7df8;
+}
+.vditor-reset blockquote[data-callout='warning'],
+.vditor-reset blockquote[data-callout='todo'] {
+  --vmarkd-callout-accent: #d29922;
+}
+.vditor-reset blockquote[data-callout='caution'],
+.vditor-reset blockquote[data-callout='danger'],
+.vditor-reset blockquote[data-callout='failure'],
+.vditor-reset blockquote[data-callout='bug'] {
+  --vmarkd-callout-accent: #f85149;
+}
+/* Foldable (Obsidian `-`/`+`): collapsed hides the body, keeps the title. */
+.vditor-reset
+  blockquote[data-callout-foldable='closed']
+  > :not(.vmarkd-callout__title) {
+  display: none;
+}

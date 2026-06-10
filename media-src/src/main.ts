@@ -38,6 +38,7 @@ const CONTENT_VIS_MIN_CHARS = 100_000
 import { applyBodyOptions, swapStyle, initOnlyChanged } from './live-config'
 import { applyMermaidTheme, resolveMermaidInit } from './mermaid-theme'
 import { reRenderMermaid } from './mermaid-retheme'
+import { applyCallouts } from './callouts'
 import { setupHistoryKeybind } from './undo-keybind'
 import { createPendingEdit } from './pending-edit'
 import { createIncrementalMd } from './incremental-md'
@@ -338,6 +339,9 @@ function runFinishInit(msg: any): void {
     }
   }
   setupSplitScrollSync()
+  // Callouts / GitHub Alerts (task 106): restyle `[!TYPE]` blockquotes in rendered
+  // (non-editable) panes. Idempotent + skips contenteditable, so the source round-trips.
+  applyCallouts(document.body)
   reportDocMode()
 }
 
