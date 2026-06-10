@@ -183,7 +183,7 @@
               "VS Code's built-in markdown preview — dark, regardless of the VS Code theme."
             ],
             "default": "auto",
-            "description": "How the rendered markdown looks. \"auto\" matches the VS Code theme's colors (light/dark); the named themes (github-light/dark, material-dark) render with that palette regardless of the VS Code theme. Code-block syntax colors are set separately by \"Syntax Highlight Theme\" (\"auto\" follows this theme). Applies live."
+            "description": "How the rendered markdown looks. \"auto\" follows the VS Code theme's colors (light/dark); the named themes render with their own palette regardless of the VS Code theme. Code-block syntax colors are set separately by \"Syntax Highlight Theme\"."
           },
           "vmarkd.theme.code": {
             "type": "string",
@@ -267,7 +267,7 @@
               "Follow the VS Code light/dark theme — github in a light theme, github-dark in a dark one."
             ],
             "default": "auto",
-            "description": "Syntax-highlight theme for code blocks (highlight.js). \"auto\" follows the VS Code light/dark theme (github / github-dark); pick any of the 73 highlight.js styles to override. Applies live."
+            "description": "Syntax-highlight theme for code blocks. \"auto\" follows the VS Code theme; otherwise choose a specific theme."
           },
           "vmarkd.theme.mermaid": {
             "type": "string",
@@ -316,7 +316,7 @@
               "One Dark (Atom)."
             ],
             "default": "auto",
-            "description": "Theme for Mermaid diagrams. \"auto\" follows the editor and uses the content theme's paired palette when one exists (github-light/dark); pick a named palette (Dracula, Nord, Tokyo Night, GitHub, …) to render via mermaid's customisable base theme, or \"default\"/\"forest\"/\"neutral\"/\"dark\" for mermaid's built-ins. Palette colours: Beautiful Mermaid (MIT, © Craft Docs)."
+            "description": "Color theme for Mermaid diagrams. \"auto\" follows the VS Code theme; otherwise choose a specific theme."
           },
           "vmarkd.editor.fullWidth": {
             "type": "boolean",
@@ -364,7 +364,7 @@
             "default": "",
             "scope": "resource",
             "editPresentation": "multilineText",
-            "markdownDescription": "Custom CSS injected into the editor webview. Applies live (no reload). Target Vditor classes such as `.vditor-reset`, e.g.:\n\n```css\n.vditor-reset { line-height: 1.7; }\n.vditor-reset h1 { color: #6cb6ff; }\n```\n\nFor stylesheet files instead, use `#vmarkd.css.external#`."
+            "markdownDescription": "Custom CSS injected into the editor webview. Target Vditor classes such as `.vditor-reset`, e.g.:\n\n```css\n.vditor-reset { line-height: 1.7; }\n.vditor-reset h1 { color: #6cb6ff; }\n```\n\nFor stylesheet files instead, use `#vmarkd.css.external#`."
           },
           "vmarkd.css.external": {
             "type": "array",
@@ -415,7 +415,7 @@
             "type": "string",
             "default": "assets",
             "scope": "resource",
-            "description": "Save images to which folder when upload in markdown, default relative to the markdown file, you can set to project root via `${projectRoot}/assets`. Resource-scoped — a workspace/folder can override it in `.vscode/settings.json`."
+            "description": "Folder for uploaded images. Default: next to the markdown file; use `${projectRoot}/assets` for the project root. Resource-scoped — a workspace/folder can override it in `.vscode/settings.json`."
           },
           "vmarkd.image.format": {
             "type": "string",
@@ -466,7 +466,7 @@
           "vmarkd.wiki.root": {
             "type": "string",
             "default": "",
-            "description": "Wiki root folder (relative to the workspace root). Leave empty to use the workspace root. Example: 'docs/wiki'."
+            "description": "Wiki root folder (relative to the workspace root). Leave empty to use the workspace root. Example: `docs/wiki`."
           }
         }
       },
