@@ -10,10 +10,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 - **Callouts / GitHub Alerts**: `> [!NOTE]` / `[!TIP]` / `[!IMPORTANT]` / `[!WARNING]` /
   `[!CAUTION]` blockquotes render as styled callout boxes with per-type accents and
-  icons — GitHub- and Obsidian-compatible, including foldable callouts
-  (`> [!note]-` / `+`). A collapsed callout shows its rendered preview; placing the
-  caret inside reveals the raw markdown for editing. Display-only and round-trip safe —
-  the saved markdown is untouched.
+  icons — GitHub- and Obsidian-compatible (Obsidian's `> [!note]-`/`+` fold suffix is
+  accepted and rendered as a normal callout). When the caret is outside, the callout
+  shows its rendered preview; placing the caret inside reveals the raw markdown for
+  editing. Display-only and round-trip safe — the saved markdown is untouched.
 - **ECharts chart themes** (`vmarkd.theme.echarts`): `auto` (default) pairs ` ```echarts `
   charts with the rendering theme's palette (the same pairing mermaid uses), or pick an
   explicit look — light, dark, the ECharts gallery themes (vintage, macarons,

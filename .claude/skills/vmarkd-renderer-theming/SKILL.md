@@ -154,9 +154,28 @@ render's theming, so editing a block can look completely different from its rend
   inline-code with `--vmarkd-code-bg`; it also hit the source code → a lighter box inside the panel
   (github-dark only; light themes lack `.vditor--dark`). Override needs ≥(0,4,2):
   `.vditor-reset pre.vditor-ir__marker--pre > code:not(.hljs):not(.highlight-chroma)`.
-- **Panel-resize on toggle.** task-05's `.vditor--dark … pre.vditor-ir__preview code{padding-bottom:9.9px}`
-  trims ONLY the rendered code's bottom on dark; the `.hljs` source kept full 1em → ~2px taller on
-  edit. Add the source selector to that same rule.
+- **Code-block BOTTOM padding = hljs `1em`, no dark trim.** task-05 once trimmed the IR rendered
+  code's bottom to a fixed `padding-bottom:9.9px` on `.vditor--dark` (for first-paint parity). That
+  trim hit `.vditor-ir__preview` but NOT the standalone Preview pane (`.vditor-preview`), which kept
+  the hljs `1em` → on dark the IR render sat ~4px shorter at the bottom than the same block in Preview
+  (font-size dependent: `1em` scales, `9.9px` didn't). REMOVED both dark trims (settled + un-highlighted
+  first-paint) so render + `.hljs` source + first-paint box all use `1em` bottom on every theme —
+  still mutually equal (no first-paint jump, no expand resize) AND matching the Preview pane. **Don't
+  re-add a dark bottom trim.** Guard: blockbg.spec.ts "dark IR code render has symmetric (1em) vertical
+  padding" (`paddingBottom===paddingTop` after `.vditor--dark` + atom-one-dark).
+- **Collapsed code block must equal Preview height — kill the node's phantom line boxes.** The IR
+  dual-node wraps its block render BETWEEN inline content: the node's own `::before`/`::after
+  {content:" "}` pseudos + the h:0 fence/info `.vditor-ir__marker` spans. Each inline run forms an
+  anonymous line box = the node's line-height STRUT (~2 lines ≈ 40px phantom above+below) → collapsed
+  block ~40px taller than Preview, "jumps" on Edit↔Preview / caret enter-leave. CAN'T fix via the
+  node's line-height (unitless → inherits into `code.hljs` → squishes the render; a forced value
+  mismatches themes that set their own code line-height). FIX (collapsed only, `:not(--expand)`):
+  `content:none` on the pseudos + `display:block` on the markers (they're h:0 + overflow:hidden →
+  invisible, stay in flow → no scroll-jump) → node holds only the block render, height == Preview,
+  ZERO impact on the render's line-height/font (theme-agnostic). Scoped `:has(> .vditor-ir__preview >
+  code.hljs)` so diagrams keep their geometry. Guard: blockbg.spec.ts "collapsed code block has no
+  phantom height". When `--expand` is set the rule stops matching → source panel + gaps return (the
+  user wants the editing room then).
 - **`blurEvent` collapses `--expand` on EVERY blur** (Vditor `util/editorCommonEvent.ts`). A click in
   the webview = transient blur→refocus → the render flashed mid-click. Fix = esbuild patch
   `fixIrBlurExpand`: wrap the `expandElement.classList.remove(...)` in `requestAnimationFrame` + a
