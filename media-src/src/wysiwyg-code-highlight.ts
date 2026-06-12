@@ -246,16 +246,25 @@ function applyToCode(code: HTMLElement, hljs: Hljs, lang: string): void {
   if (caret) applyCaretOffsets(code, caret.start, caret.end)
 }
 
-/** Remove our spans/class from a source that lost focus, leaving clean raw text. */
-function stripCode(code: HTMLElement): void {
-  if (code.querySelector('span')) {
-    // Collapse the token spans back to a single raw text node.
-    code.replaceChildren(
-      (code.ownerDocument ?? document).createTextNode(code.textContent ?? ''),
-    )
+/**
+ * Tag every real-code wysiwyg source `<code>` with `.hljs` so it carries the theme's base
+ * colour/background the MOMENT Vditor reveals it — before our (rAF) token spans land. Without this,
+ * the un-highlighted frame is styled by `code:not(.hljs)` (the content theme's inline-code colour,
+ * which can be near-invisible on the code panel) → a colour "flash" (e.g. white text) when switching
+ * between code blocks. Mirrors IR's `observeCodeSource`. Synchronous + attribute-free (the observer
+ * doesn't watch attributes → no loop, applied before paint). Skips diagram languages (mermaid/echarts
+ * sources aren't hljs code). The class is stripped before serialization by `flattenSourceHtml`.
+ */
+function tagSources(root: ParentNode): void {
+  const codes = root.querySelectorAll<HTMLElement>(
+    'pre.vditor-wysiwyg__pre > code',
+  )
+  for (const code of Array.from(codes)) {
+    if (code.classList.contains('hljs')) continue
+    const lang = langOf(code)
+    if (lang && CUSTOM_LANGS.has(lang)) continue
+    code.classList.add('hljs')
   }
-  code.classList.remove('hljs')
-  delete (code as any).__vmcsText
 }
 
 /**
@@ -274,38 +283,48 @@ export function observeWysiwygCodeHighlight(
 
   let composing = false
   let rafId = 0
-  let lastCode: HTMLElement | null = null
 
-  const obs = new MutationObserver(() => schedule())
+  // On every DOM change: synchronously ensure `.hljs` on all sources (no base-colour flash, runs in
+  // the observer microtask = before paint), then schedule the (heavier, caret-restoring) token spans.
+  const obs = new MutationObserver(() => {
+    tagSources(root)
+    schedule()
+  })
 
   const run = (): void => {
     rafId = 0
     if (composing) return
-    const code = focusedCodeSource(root)
     const hljs = getHljs()
-    const lang = code && hljs ? highlightable(code, hljs) : null
-    const leaving =
-      lastCode && lastCode !== code && root.contains(lastCode) ? lastCode : null
-    const willApply =
-      !!code &&
-      !!lang &&
-      !(
+    if (!hljs) return
+    // Highlight EVERY real-code source — not just the focused one — and keep them highlighted. A
+    // block you switch to is then ALREADY coloured, so it never flashes the monochrome (near-white
+    // on a dark theme) base for a frame before the token spans land. Switching reveals a source via
+    // a display toggle (no childList mutation), so we can't reliably colour it before the browser
+    // paints; pre-highlighting all sources sidesteps that race entirely. The cache (`__vmcsText` +
+    // presence of spans) skips unchanged sources, so this stays cheap on every selectionchange /
+    // keystroke. Caret is restored only for the source holding the selection (see applyToCode), so
+    // highlighting the hidden ones is side-effect-free.
+    const todo: Array<[HTMLElement, string]> = []
+    for (const code of Array.from(
+      root.querySelectorAll<HTMLElement>('pre.vditor-wysiwyg__pre > code'),
+    )) {
+      const lang = highlightable(code, hljs)
+      if (!lang) continue
+      if (
         (code as any).__vmcsText === (code.textContent ?? '') &&
         code.querySelector('span')
       )
-    if (!leaving && !willApply) {
-      lastCode = code ?? null
-      return
+        continue
+      todo.push([code, lang])
     }
+    if (todo.length === 0) return
     // Disconnect so our own innerHTML/caret writes aren't observed (no loop).
     obs.disconnect()
     try {
-      if (leaving) stripCode(leaving)
-      if (code && hljs && lang) applyToCode(code, hljs, lang)
+      for (const [code, lang] of todo) applyToCode(code, hljs, lang)
     } finally {
       obs.observe(root, OBS_OPTS)
     }
-    lastCode = code ?? null
   }
   const schedule = (): void => {
     if (rafId) return
@@ -325,6 +344,8 @@ export function observeWysiwygCodeHighlight(
   doc.addEventListener('selectionchange', schedule)
   root.addEventListener('compositionstart', onCompStart)
   root.addEventListener('compositionend', onCompEnd)
+  // Pre-tag any sources already present (incl. hidden ones) so the FIRST reveal is flash-free.
+  tagSources(root)
   schedule()
 
   return () => {
@@ -333,9 +354,5 @@ export function observeWysiwygCodeHighlight(
     doc.removeEventListener('selectionchange', schedule)
     root.removeEventListener('compositionstart', onCompStart)
     root.removeEventListener('compositionend', onCompEnd)
-    if (lastCode && root.contains(lastCode)) {
-      obs.disconnect()
-      stripCode(lastCode)
-    }
   }
 }

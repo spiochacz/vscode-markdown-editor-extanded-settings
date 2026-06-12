@@ -161,6 +161,63 @@ const fixIrLinkClick = {
     )
   },
 }
+// Clicking a rendered WYSIWYG code block opens its source but Vditor's `showCode` collapses the
+// caret to the block START (`first=true` → `range.collapse(true)`), so clicking a specific line
+// jumps to the top. Land the caret at the CLICKED position instead. We capture the clicked character
+// offset from the PREVIEW's `<code>` text BEFORE `showCode` runs (text-based, so it's immune to the
+// `scrollCenter` that `showCode` does), then map that offset into the now-visible source's text
+// nodes. Falls back to Vditor's start if anything doesn't line up (caretRangeFromPoint missing, click
+// outside the code, etc.). Scoped to `data-type="code-block"` so other previews are untouched.
+const WYSIWYG_CODE_CLICK_ANCHOR =
+  'if (previewElement) {\n                showCode(previewElement, vditor);\n            }'
+export function patchWysiwygCodeClickCaret(code) {
+  if (!code.includes(WYSIWYG_CODE_CLICK_ANCHOR)) {
+    throw new Error(
+      'fixWysiwygCodeClickCaret: anchor not found in vditor wysiwyg/index.ts (version drift?)',
+    )
+  }
+  const replacement = `if (previewElement) {
+                let vmCkOffset = -1;
+                const vmCkBlock = previewElement.parentElement;
+                if (vmCkBlock && vmCkBlock.getAttribute("data-type") === "code-block"
+                    && typeof event.clientX === "number" && event.clientX > 0) {
+                    const vmCkDoc = previewElement.ownerDocument;
+                    const vmCkPt = vmCkDoc.caretRangeFromPoint
+                        ? vmCkDoc.caretRangeFromPoint(event.clientX, event.clientY) : null;
+                    const vmCkPvCode = previewElement.querySelector("code") || previewElement;
+                    if (vmCkPt && vmCkPvCode.contains(vmCkPt.startContainer)) {
+                        const vmCkM = vmCkDoc.createRange();
+                        vmCkM.setStart(vmCkPvCode, 0);
+                        vmCkM.setEnd(vmCkPt.startContainer, vmCkPt.startOffset);
+                        vmCkOffset = vmCkM.toString().length;
+                    }
+                }
+                showCode(previewElement, vditor);
+                if (vmCkOffset >= 0) {
+                    const vmCkPre = previewElement.previousElementSibling;
+                    const vmCkSrc = vmCkPre && vmCkPre.tagName === "PRE"
+                        ? (vmCkPre.querySelector("code") || vmCkPre) : vmCkPre;
+                    if (vmCkSrc) {
+                        const vmCkDoc2 = previewElement.ownerDocument;
+                        const vmCkW = vmCkDoc2.createTreeWalker(vmCkSrc, NodeFilter.SHOW_TEXT);
+                        let vmCkRem = vmCkOffset, vmCkN = vmCkW.nextNode(), vmCkT = null, vmCkTo = 0;
+                        while (vmCkN) {
+                            const vmCkL = vmCkN.nodeValue.length;
+                            if (vmCkRem <= vmCkL) { vmCkT = vmCkN; vmCkTo = vmCkRem; break; }
+                            vmCkRem -= vmCkL; vmCkN = vmCkW.nextNode();
+                        }
+                        if (vmCkT) {
+                            const vmCkR = vmCkDoc2.createRange();
+                            vmCkR.setStart(vmCkT, vmCkTo); vmCkR.collapse(true);
+                            const vmCkS = vmCkDoc2.getSelection();
+                            vmCkS.removeAllRanges(); vmCkS.addRange(vmCkR);
+                        }
+                    }
+                }
+            }`
+  return code.replace(WYSIWYG_CODE_CLICK_ANCHOR, replacement)
+}
+
 const fixWysiwygLinkClick = {
   name: 'fix-wysiwyg-link-click',
   setup(build) {
@@ -168,7 +225,11 @@ const fixWysiwygLinkClick = {
       { filter: /vditor[/\\]src[/\\]ts[/\\]wysiwyg[/\\]index\.ts$/ },
       async (args) => {
         const code = await readFile(args.path, 'utf8')
-        return { loader: 'ts', contents: patchWysiwygLinkClick(code) }
+        // One onLoad per file → chain both wysiwyg/index.ts patches here.
+        return {
+          loader: 'ts',
+          contents: patchWysiwygCodeClickCaret(patchWysiwygLinkClick(code)),
+        }
       },
     )
   },

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import {
   patchIrLinkClick,
   patchWysiwygLinkClick,
+  patchWysiwygCodeClickCaret,
   patchListToggle,
   patchOutlineCurrent,
   patchMathRender,
@@ -111,6 +112,29 @@ describe('patchWysiwygLinkClick (task 62)', () => {
   it('throws (fails the build loudly) if the anchor is gone — version-bump guard', () => {
     expect(() => patchWysiwygLinkClick('// unrelated source')).toThrow(
       /fixWysiwygLinkClick/,
+    )
+  })
+})
+
+describe('patchWysiwygCodeClickCaret (click lands caret at the clicked line)', () => {
+  const CLICK_ANCHOR =
+    'if (previewElement) {\n                showCode(previewElement, vditor);\n            }'
+
+  it('the shipped Vditor WYSIWYG source collapses the caret to the block start (pre-patch)', () => {
+    expect(wysiwygSource).toContain(CLICK_ANCHOR)
+  })
+
+  it('injects a caretRangeFromPoint reposition after showCode in the click handler', () => {
+    const patched = patchWysiwygCodeClickCaret(wysiwygSource)
+    expect(patched).toContain('caretRangeFromPoint')
+    expect(patched).toContain('data-type") === "code-block"')
+    // still calls showCode (we reposition AFTER it, falling back to its start)
+    expect(patched).toContain('showCode(previewElement, vditor);')
+  })
+
+  it('throws (fails the build loudly) if the anchor is gone — version-bump guard', () => {
+    expect(() => patchWysiwygCodeClickCaret('// unrelated source')).toThrow(
+      /fixWysiwygCodeClickCaret/,
     )
   })
 })

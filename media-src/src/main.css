@@ -144,6 +144,19 @@ body[data-use-vscode-theme-color="1"] .vditor-reset pre code.hljs {
 .vditor-reset pre > code:not(.hljs):not(.highlight-chroma) {
   background-color: transparent;
 }
+/* Code line numbers: Vditor gives the RENDERED code a `.vditor-linenumber` gutter
+   (`padding-left: 4em` + an absolutely-positioned rows column), but the editable IR source
+   (`.vditor-ir__marker--pre > code`) never gets it — so the code text jumps ~36px LEFT the moment
+   you enter edit mode (caret in → `--expand`). Reserve the SAME 4em gutter on the edit source so the
+   code stays put. Scoped via `:has()` to blocks whose render actually has line numbers, so plain
+   code blocks are unaffected. (The numbers themselves aren't drawn while editing — only the column is
+   reserved — but the code no longer shifts, which was the reported bug.) */
+.vditor-reset
+  .vditor-ir__node:has(> pre.vditor-ir__preview > code.vditor-linenumber)
+  > pre.vditor-ir__marker--pre
+  > code {
+  padding-left: 4em;
+}
 /* When a code block is expanded for editing, Vditor reveals the editable source BUT leaves the
    rendered `.vditor-ir__preview` visible too — so the source panel and the render panel stack (two
    panels; obvious on a light theme like GitHub where the panel `#f6f8fa` stands out on white).
@@ -160,18 +173,35 @@ body[data-use-vscode-theme-color="1"] .vditor-reset pre code.hljs {
 /* WYSIWYG equivalent: clicking into a code block reveals its editable source (`pre.vditor-wysiwyg__pre`,
    which Vditor flips to inline `display:block`) but leaves the rendered `pre.vditor-wysiwyg__preview`
    showing too — so you saw TWO stacked sections ("leftover from IR"). Hide the render while editing
-   so it's a single (now syntax-coloured — see wysiwyg-code-highlight.ts) block. Driven by Vditor's
-   OWN inline `display:block` on the source (no class to key off here, unlike IR's `--expand`), so it
-   tracks focus and survives the per-keystroke block rebuild with no JS. SCOPED to real code via
+   so it's a single (now syntax-coloured — see wysiwyg-code-highlight.ts) block. Keyed on the source
+   being VISIBLE: NON-edited blocks get inline `display:none` (Vditor/`highlightToolbarWYSIWYG`); the
+   edited one has the source shown — either inline `display: block` (on click via showCode) OR NO
+   inline style at all (after the per-keystroke `input()` rebuild drops it, while CSS keeps it block).
+   So we must match "source NOT hidden" = `:not([style*="none"])` (covers null AND block, ignoring
+   spacing); the earlier `[style*="display: block"]` missed the post-rebuild null → the preview
+   reappeared and a "second block" stacked below while typing. SCOPED to real code via
    `.vditor-wysiwyg__preview:has(> code)`: diagram previews (mermaid/echarts → a `div`/svg, no direct
    `<code>`) stay visible while their source is edited. The render returns when the caret leaves and
    Vditor sets the source back to `display:none`. */
 .vditor-reset
   .vditor-wysiwyg__block:has(
-    > pre.vditor-wysiwyg__pre[style*="display: block"]
+    > pre.vditor-wysiwyg__pre:not([style*="none"])
   )
   > pre.vditor-wysiwyg__preview:has(> code) {
   display: none;
+}
+/* …and neutralise the source pre's NEGATIVE `margin-bottom: -14px`. Vditor gives the shown source
+   pre a negative bottom margin so the rendered preview (normally still visible below it) overlaps
+   flush. Since we HIDE that preview, the negative margin instead pulls the NEXT block up by 14px →
+   the gap between two adjacent code blocks collapses to 0 and they merge into one panel (same bg)
+   while editing the first. Zeroing it restores the normal inter-block gap. Same "source visible"
+   condition as the hide rule (`:not([style*="none"])` — matches the shown source whether it has
+   inline `display: block` or no inline style after a rebuild). The non-edited block keeps Vditor's
+   value (source pre is `display:none` → excluded). */
+.vditor-reset
+  .vditor-wysiwyg__block:has(> pre.vditor-wysiwyg__preview > code)
+  > pre.vditor-wysiwyg__pre:not([style*="none"]) {
+  margin-bottom: 0;
 }
 /* COLLAPSED code block (caret OUTSIDE) must render with the SAME height as Preview. The IR
    dual-node node wraps its block render (`.vditor-ir__preview`) BETWEEN inline content: the
