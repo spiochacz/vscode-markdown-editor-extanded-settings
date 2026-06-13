@@ -827,18 +827,36 @@ body[data-full-width="1"][data-heading-markers="0"] .vditor-preview .vditor-rese
   padding-left: 10px !important;
 }
 
-/* Preview pane (toolbar Preview button), narrow width. Scoped to FULL preview only
-   (not split view) via :has(.vditor-sv) — in split mode .vditor-sv is display:block
-   alongside .vditor-preview; in full preview the sv pane is hidden. Without this scope,
-   overflow:hidden on .vditor-preview kills split-view scroll sync (task 48). The
-   overflow swap (hidden on pane, auto on reset) moves the scrollbar into the reset so
-   its width eats from the right padding, matching the editor's scroll layout. */
-body[data-full-width="0"] .vditor-content:not(:has(.vditor-sv)) > .vditor-preview,
-body[data-full-width="0"] .vditor-content:has(.vditor-sv[style*="display: none"]) > .vditor-preview,
-body[data-full-width="0"] .vditor-content:has(.vditor-sv[style*="display:none"]) > .vditor-preview {
+/* Preview pane (toolbar Preview button). Scoped to FULL preview only (not split view) via
+   :has(.vditor-sv) — in split mode .vditor-sv is display:block alongside .vditor-preview; in full
+   preview the sv pane is hidden. Without this scope, overflow:hidden on .vditor-preview kills
+   split-view scroll sync (task 48). The overflow swap (hidden on pane, auto on reset) moves the
+   scrollbar into the reset so its width eats from the right padding, matching the editor's scroll
+   layout. WIDTH-AGNOSTIC: applies in BOTH full-width modes. It was previously gated to
+   data-full-width="0", leaving full-width preview with Vditor's default overflow:auto on BOTH the
+   pane AND the reset (index.css:540 + :816) → two vertical scrollbars whenever the content is tall
+   enough to overflow the inner reset too (e.g. the github theme's larger Primer heading scale tips
+   it over; shorter-headinged themes stayed under, hence the github-only symptom). Padding/centering
+   stays per-width (below). */
+.vditor-content:not(:has(.vditor-sv)) > .vditor-preview,
+.vditor-content:has(.vditor-sv[style*="display: none"]) > .vditor-preview,
+.vditor-content:has(.vditor-sv[style*="display:none"]) > .vditor-preview {
   max-width: none !important;
   overflow: hidden !important;
 }
+/* Inner scroller for FULL preview — BOTH width modes (full-preview only via :has, so split view
+   keeps Vditor's own reset overflow + task-48 sync). The other half of the swap: pane hidden
+   (above), reset is the single bounded scroller. Width-agnostic — full-width gets it too now
+   (was the double-scrollbar bug). */
+.vditor-content:not(:has(.vditor-sv)) > .vditor-preview > .vditor-reset,
+.vditor-content:has(.vditor-sv[style*="display: none"]) > .vditor-preview > .vditor-reset,
+.vditor-content:has(.vditor-sv[style*="display:none"]) > .vditor-preview > .vditor-reset {
+  overflow: auto !important;
+  height: 100% !important;
+}
+/* Narrow-width (data-full-width="0") centering: cap the content column at 800px via symmetric
+   padding. Full-width's own padding (0 20px / 35px gutter) lives in the data-full-width="1" rule
+   above; this is the narrow counterpart — padding/width only (overflow handled above). */
 body[data-full-width="0"] .vditor-content:not(:has(.vditor-sv)) > .vditor-preview > .vditor-reset,
 body[data-full-width="0"] .vditor-content:has(.vditor-sv[style*="display: none"]) > .vditor-preview > .vditor-reset,
 body[data-full-width="0"] .vditor-content:has(.vditor-sv[style*="display:none"]) > .vditor-preview > .vditor-reset {
@@ -847,8 +865,6 @@ body[data-full-width="0"] .vditor-content:has(.vditor-sv[style*="display:none"])
   margin: 0 !important;
   padding: 10px max(0px, calc((100% - 800px) / 2)) !important;
   box-sizing: border-box !important;
-  overflow: auto !important;
-  height: 100% !important;
 }
 
 /* native <dialog> confirm modal (replaces jquery-confirm) */
