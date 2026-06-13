@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-13
 - **Tags:** marp, vditor, preview, esbuild
-- **Related:** ADR-0001 (deck = read-only second render), ADR-0003 (lazy marp chunk — proposed), `docs/superpowers/plans/2026-06-13-marp-preview-integration.md`
+- **Related:** ADR-0001 (deck = read-only second render), `docs/superpowers/plans/2026-06-13-marp-preview-integration.md`
 - **Supersedes:** the in-session "standalone right panel" approach (implemented, then removed — never recorded as its own ADR).
 
 ## Context
@@ -41,6 +41,6 @@ The hook (installed by `media-src/src/marp-preview-intercept.ts`) returns the Ma
 - **+** Matches user expectation (the Preview button shows slides).
 - **+** Simpler `main.ts` — no separate panel lifecycle, wrapper, or splitter.
 - **−** Depends on **patching Vditor source** — anchor-drift risk on a Vditor bump, mitigated by throw-on-missing-anchor. Because esbuild runs only the **first** matching `onLoad` per file, this patch had to be **merged** with the pre-existing `fixPreviewCopyTip` into one `fixPreviewIndex` plugin (both transforms in sequence).
-- **−** Vditor's preview render is **synchronous** but the marp chunk loads **async** (ADR-0003): the first render of a deck returns a `"Loading Marp…"` placeholder, then `repaint()` re-runs `preview.render` once the chunk lands (cached thereafter).
+- **−** Vditor's preview render is **synchronous** but the marp-core bundle loads **async** (it is a separate, lazily-loaded chunk): the first render of a deck returns a `"Loading Marp…"` placeholder, then `repaint()` re-runs `preview.render` once the chunk lands (cached thereafter).
 - **−** Vditor's `afterRender()` still runs on the injected Marp HTML; needs real-webview verification that it doesn't mangle slide content (e.g. code fences). A follow-up may skip `afterRender` for Marp docs.
 - **−** Reverse-nav (click slide → caret) computes a source offset and posts `window.__vmarkdMarpNav`, but **has no host consumer yet** (deferred — to be wired to the existing reveal-in-source plumbing).

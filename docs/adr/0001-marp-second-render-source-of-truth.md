@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-13
 - **Tags:** marp, rendering, architecture
-- **Related:** `docs/superpowers/specs/2026-06-12-marp-split-panel-design.md`, ADR-0002 (preview-surface integration), ADR-0003 (lazy marp chunk — proposed)
+- **Related:** `docs/superpowers/specs/2026-06-12-marp-split-panel-design.md`, ADR-0002 (preview-surface integration)
 
 ## Context
 
@@ -35,4 +35,4 @@ The Marp deck is a **second, independent render of the same source text**, produ
 - **−** Two renders of the same source coexist (Lute for the normal preview, marp-core for the deck) — accepted cost.
 - **−** The deck is read-only: per-slide WYSIWYG editing is explicitly a later phase, not available now.
 
-This ADR establishes the data model. *How* the read-only deck is surfaced in the editor is ADR-0002; *how* marp-core is packaged is ADR-0003 (proposed).
+This ADR establishes the data model. *How* the read-only deck is surfaced in the editor is ADR-0002.
