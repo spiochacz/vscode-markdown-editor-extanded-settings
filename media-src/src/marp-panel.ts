@@ -6,6 +6,64 @@
 import { parseMarpEnabled } from '../../src/marp-detect'
 import { injectDeck, loadMarp, type MarpApi } from './marp-preview'
 
+/**
+ * Source offset → slide index: the number of top-level `---` slide-break lines before `offset`.
+ * Frontmatter's closing `---` is NOT a slide break, so we start counting after the frontmatter
+ * block. A line is a slide break only if it is exactly `---` on its own (trimmed).
+ */
+export function slideIndexForOffset(source: string, offset: number): number {
+  const head = source.slice(0, Math.max(0, offset))
+  const lines = head.split(/\r?\n/)
+  let i = 0
+  // Skip a leading frontmatter block (--- … ---) — its fences are not slide breaks.
+  let start = 0
+  if (lines[0]?.trim() === '---') {
+    for (let k = 1; k < lines.length; k++) {
+      if (/^(---|\.\.\.)\s*$/.test(lines[k])) {
+        start = k + 1
+        break
+      }
+    }
+  }
+  let slide = 0
+  for (i = start; i < lines.length; i++) {
+    if (lines[i].trim() === '---') slide++
+  }
+  return slide
+}
+
+/** Source offset of the START of slide `index`'s content (line after its opening `---`). */
+export function offsetForSlideIndex(source: string, index: number): number {
+  const lines = source.split(/\r?\n/)
+  let start = 0
+  if (lines[0]?.trim() === '---') {
+    for (let k = 1; k < lines.length; k++) {
+      if (/^(---|\.\.\.)\s*$/.test(lines[k])) {
+        start = k + 1
+        break
+      }
+    }
+  }
+  if (index <= 0) {
+    return charOffsetOfLine(lines, start)
+  }
+  let slide = 0
+  for (let i = start; i < lines.length; i++) {
+    if (lines[i].trim() === '---') {
+      slide++
+      if (slide === index) return charOffsetOfLine(lines, i + 1)
+    }
+  }
+  return charOffsetOfLine(lines, lines.length)
+}
+
+function charOffsetOfLine(lines: string[], line: number): number {
+  let off = 0
+  for (let i = 0; i < Math.min(line, lines.length); i++)
+    off += lines[i].length + 1
+  return off
+}
+
 const OPEN_KEY = 'vmarkd.marp.open'
 const WIDTH_KEY = 'vmarkd.marp.width'
 const MIN_WIDTH = 240
@@ -19,6 +77,10 @@ export interface MarpPanel {
   dispose(): void
   /** The deck container element (for the overlay/sync to read slide positions). */
   readonly deckEl: HTMLElement
+  /** Highlight + scroll the deck to the slide at this source offset. */
+  highlightForOffset(source: string, offset: number): void
+  /** Active slide index currently highlighted (or -1). */
+  activeIndex(): number
 }
 
 // localStorage access is best-effort: webview storage can be disabled or quota-exceeded, in which
@@ -161,6 +223,32 @@ export function mountMarpPanel(
       deckEl.appendChild(msg)
     })
 
+  let activeSlide = -1
+  const highlight = (idx: number) => {
+    const sections = deckEl.querySelectorAll<HTMLElement>('section')
+    if (idx < 0 || idx >= sections.length) return
+    if (activeSlide === idx) return
+    sections.forEach((s, i) => {
+      s.classList.toggle('vmarkd-marp__active', i === idx)
+    })
+    sections[idx].scrollIntoView({ block: 'nearest' })
+    activeSlide = idx
+  }
+
+  // Reverse-nav: clicking a slide places the caret at its source start. We post a host message
+  // (the host owns reveal-in-source); the webview also moves Vditor's caret if it can map offset
+  // → DOM. For P1 we post the offset; the host/main.ts caret move reuses existing reveal wiring.
+  deckEl.addEventListener('click', (e) => {
+    const section = (e.target as HTMLElement)?.closest('section')
+    if (!section) return
+    const sections = Array.from(deckEl.querySelectorAll('section'))
+    const idx = sections.indexOf(section)
+    if (idx < 0) return
+    const src = (window as any).vditor?.getValue?.() ?? ''
+    const offset = offsetForSlideIndex(src, idx)
+    ;(window as any).__vmarkdMarpNav?.(offset)
+  })
+
   return {
     deckEl,
     update(src: string) {
@@ -180,6 +268,12 @@ export function mountMarpPanel(
       editorRoot.classList.remove('vmarkd-marp__editor')
       wrapper.parentElement?.insertBefore(editorRoot, wrapper)
       wrapper.remove()
+    },
+    highlightForOffset(src: string, offset: number) {
+      highlight(slideIndexForOffset(src, offset))
+    },
+    activeIndex() {
+      return activeSlide
     },
   }
 }

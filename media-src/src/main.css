@@ -935,3 +935,10 @@ body.vmarkd-marp__resizing {
   cursor: col-resize;
   user-select: none;
 }
+.vmarkd-marp__deck section {
+  outline: 2px solid transparent;
+  transition: outline-color 0.15s;
+}
+.vmarkd-marp__deck section.vmarkd-marp__active {
+  outline-color: var(--vscode-focusBorder, #007fd4);
+}

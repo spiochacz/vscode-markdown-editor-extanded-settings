@@ -61,3 +61,28 @@ test('the marp chunk is not loaded until a deck is rendered', async ({
   await page.evaluate((src) => (window as any).__renderDeck(src), DECK)
   expect(await page.evaluate(() => (window as any).__marpLoaded())).toBe(true)
 })
+
+test('caret in slide K highlights slide K in the deck', async ({ page }) => {
+  await goto(page)
+  await page.evaluate((src) => (window as any).__mountPanel(src), DECK)
+  // Place the "caret" at a source offset inside slide 2 (0-based slide index 1).
+  await page.evaluate(() => (window as any).__setCaretToSlide(1))
+  await expect(
+    page.locator('#mount .vmarkd-marp__deck section.vmarkd-marp__active'),
+  ).toHaveCount(1)
+  const idx = await page.evaluate(() => (window as any).__activeSlideIndex())
+  expect(idx).toBe(1)
+})
+
+test('clicking slide K reports slide K source offset', async ({ page }) => {
+  await goto(page)
+  await page.evaluate((src) => (window as any).__mountPanel(src), DECK)
+  await page.locator('#mount .vmarkd-marp__deck section').nth(2).click()
+  // The reverse-nav hook records the requested source offset.
+  const off = await page.evaluate(() => (window as any).__lastNavOffset())
+  // Slide 3 (index 2) starts after the first two `---` slide-break lines.
+  expect(off).toBeGreaterThan(0)
+  const before = DECK.slice(0, off)
+  // Two slide-break `---` occur before slide 3's content.
+  expect((before.match(/^---$/gm) || []).length).toBeGreaterThanOrEqual(3)
+})

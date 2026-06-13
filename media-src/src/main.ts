@@ -126,6 +126,13 @@ function trackEditorCaret() {
   // artifact we are guarding against) so it can't overwrite a real position
   if (node === editor && sel.anchorOffset === 0 && sel.isCollapsed) return
   lastEditorRange = sel.getRangeAt(0).cloneRange()
+
+  // Marp forward sync: highlight the caret's slide in the deck (task 107). Cheap; only runs when
+  // a deck panel is mounted, so non-deck docs pay nothing.
+  if (marpPanel) {
+    const off = getCursorSourceOffset(v)
+    if (off >= 0) marpPanel.highlightForOffset(v.getValue(), off)
+  }
 }
 document.addEventListener('selectionchange', trackEditorCaret)
 
