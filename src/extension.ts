@@ -27,6 +27,7 @@ import {
 } from './wiki-cache'
 import { buildWebviewHtml, sanitizeCss } from './html-builder'
 import { resolveFontSize, themeDef } from './theme-registry'
+import { parseMarpEnabled } from './marp-detect'
 
 const KeyVditorOptions = 'vmarkd.options'
 const KeyOutlineWidth = 'vmarkd.outlineWidth'
@@ -751,6 +752,7 @@ export class EditorSession {
     props: {
       type?: 'init' | 'update'
       cdn?: string
+      marpSrc?: string
       options?: any
       theme?: 'dark' | 'light'
       wiki?: any
@@ -879,8 +881,24 @@ export class EditorSession {
     await this.postUpdate({
       type: 'init',
       cdn: this.vditorBaseUri,
+      // The lazy Marp chunk's webview URI (loaded on demand by marp-preview.ts). Lives next to
+      // main.js under media/dist, NOT under media/vditor (which `cdn` points to).
+      marpSrc: this.webviewPanel.webview
+        .asWebviewUri(
+          vscode.Uri.joinPath(
+            this.context.extensionUri,
+            'media',
+            'dist',
+            'marp.js',
+          ),
+        )
+        .toString(),
       options: {
         ...MarkdownEditorProvider.collectConfigOptions(),
+        // Per-document Marp activation (task 107): `marp: true` frontmatter → deck mode. The
+        // webview re-evaluates this on each edit too (parseMarpEnabled), so this is just the
+        // initial state.
+        marp: parseMarpEnabled(this.document.getText()),
         ...MarkdownEditorProvider.sanitizeVditorOptions(
           this.context.globalState.get(KeyVditorOptions),
         ),
