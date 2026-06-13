@@ -315,14 +315,39 @@ export function patchPreviewCopyTip(code) {
   }
   return code.replaceAll(COPY_TIP_ANCHOR, 'Copied to clipboard')
 }
-const fixPreviewCopyTip = {
-  name: 'fix-preview-copy-tip',
+
+// Task 107 — Marp preview. Vditor's preview render (preview/index.ts) does
+// `let html = vditor.lute.Md2HTML(markdownText)` then writes it into `.vditor-preview`. For a
+// `marp: true` doc we render the Marp slide deck INSTEAD — in the same surface used by the sv
+// right pane AND the IR/WYSIWYG "Preview" button. Gate the (Lute) render through a webview hook
+// that returns the deck HTML for marp docs, else null → unchanged Lute render. The literal occurs
+// twice (the preview.url fallback branch + the default local path); replaceAll covers both.
+const MARP_PREVIEW_ANCHOR = 'let html = vditor.lute.Md2HTML(markdownText);'
+export function patchMarpPreview(code) {
+  if (!code.includes(MARP_PREVIEW_ANCHOR)) {
+    throw new Error(
+      'fixMarpPreview: anchor not found in vditor preview/index.ts (version drift?)',
+    )
+  }
+  return code.replaceAll(
+    MARP_PREVIEW_ANCHOR,
+    'let html = (window.__vmarkdRenderMarpPreview ? (window.__vmarkdRenderMarpPreview(markdownText) ?? vditor.lute.Md2HTML(markdownText)) : vditor.lute.Md2HTML(markdownText));',
+  )
+}
+
+// One plugin for preview/index.ts: esbuild runs only the FIRST matching onLoad per file, so the
+// copy-tip translation and the marp render gate must share it (mirrors fixEcharts). Both transforms
+// run in sequence on the same source.
+const fixPreviewIndex = {
+  name: 'fix-preview-index',
   setup(build) {
     build.onLoad(
       { filter: /vditor[/\\]src[/\\]ts[/\\]preview[/\\]index\.ts$/ },
       async (args) => {
-        const code = await readFile(args.path, 'utf8')
-        return { loader: 'ts', contents: patchPreviewCopyTip(code) }
+        let code = await readFile(args.path, 'utf8')
+        code = patchPreviewCopyTip(code)
+        code = patchMarpPreview(code)
+        return { loader: 'ts', contents: code }
       },
     )
   },
@@ -682,7 +707,7 @@ export const vditorSourceConfig = {
     fixOutlineCurrent,
     fixIrBlurExpand,
     fixMathRender,
-    fixPreviewCopyTip,
+    fixPreviewIndex,
     fixProcessCode,
     fixIrInputSerialize,
     fixInfoDialog,

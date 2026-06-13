@@ -5,63 +5,9 @@
 // beside whatever editor mode is active.
 import { parseMarpEnabled } from '../../src/marp-detect'
 import { injectDeck, loadMarp, type MarpApi } from './marp-preview'
-
-/**
- * First content line AFTER a leading YAML frontmatter block (--- … ---). Returns 0 when there is
- * no frontmatter. Shared by both map helpers so their frontmatter-skip can't diverge.
- */
-function frontmatterStartLine(lines: string[]): number {
-  if (lines[0]?.trim() !== '---') return 0
-  for (let k = 1; k < lines.length; k++) {
-    if (/^(---|\.\.\.)\s*$/.test(lines[k])) return k + 1
-  }
-  return 0
-}
-
-/**
- * Source offset → slide index: the number of top-level `---` slide-break lines before `offset`.
- * Frontmatter's closing `---` is NOT a slide break, so we start counting after the frontmatter
- * block. A line is a slide break only if it is exactly `---` on its own (trimmed). Monotonic: the
- * frontmatter end is computed from the FULL source and breaks are compared by line-start offset,
- * so the index never flips up-then-down as `offset` crosses a `---` boundary.
- */
-export function slideIndexForOffset(source: string, offset: number): number {
-  const lines = source.split(/\r?\n/)
-  const start = frontmatterStartLine(lines)
-  const clamped = Math.max(0, offset)
-  let slide = 0
-  let pos = 0
-  for (let i = 0; i < lines.length; i++) {
-    if (i >= start && lines[i].trim() === '---' && pos < clamped) slide++
-    pos += lines[i].length + 1
-  }
-  return slide
-}
-
-/** Source offset of the START of slide `index`'s content (line after its opening `---`). */
-export function offsetForSlideIndex(source: string, index: number): number {
-  const lines = source.split(/\r?\n/)
-  const start = frontmatterStartLine(lines)
-  if (index <= 0) {
-    return charOffsetOfLine(lines, start)
-  }
-  let slide = 0
-  for (let i = start; i < lines.length; i++) {
-    if (lines[i].trim() === '---') {
-      slide++
-      if (slide === index) return charOffsetOfLine(lines, i + 1)
-    }
-  }
-  return charOffsetOfLine(lines, lines.length)
-}
-
-// Assumes LF line endings (`+1` per line for the stripped `\n`); the editor source is LF.
-function charOffsetOfLine(lines: string[], line: number): number {
-  let off = 0
-  for (let i = 0; i < Math.min(line, lines.length); i++)
-    off += lines[i].length + 1
-  return off
-}
+// Pure slide↔source map helpers extracted to marp-slide-map.ts (task 107 R1). marp-panel.ts is
+// deleted in R2; this import keeps the build green until then.
+import { offsetForSlideIndex, slideIndexForOffset } from './marp-slide-map'
 
 const OPEN_KEY = 'vmarkd.marp.open'
 const WIDTH_KEY = 'vmarkd.marp.width'
