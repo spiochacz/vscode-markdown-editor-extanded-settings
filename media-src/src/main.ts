@@ -43,6 +43,7 @@ import { applyEchartsTheme, readVscodePalette } from './echarts-apply'
 import { reRenderEcharts } from './echarts-retheme'
 import { observeCallouts } from './callouts'
 import { observeCodeSource } from './code-source'
+import { mountMarpPanel, type MarpPanel } from './marp-panel'
 import { observeGapParagraphs } from './gap-paragraph'
 import { setupHistoryKeybind } from './undo-keybind'
 import { createPendingEdit } from './pending-edit'
@@ -96,6 +97,8 @@ let lastInitMsg: any = null
 // Disposer for the active callouts MutationObserver (task 106); torn down + replaced on re-init.
 let disposeCallouts: (() => void) | null = null
 let disposeCodeSource: (() => void) | null = null
+// The active Marp slide panel (task 107); torn down + replaced on re-init.
+let marpPanel: MarpPanel | null = null
 
 // Shared mutable knownPages set — passed to setupCustomRenderer and updated by
 // the host's wiki-update message. Because the custom renderer captures the Set
@@ -364,11 +367,23 @@ function runFinishInit(msg: any): void {
   // shift. Survives IR DOM rebuilds via its own observer; round-trips (class is invisible to Lute).
   disposeCodeSource?.()
   disposeCodeSource = observeCodeSource(activeModeElement(window.vditor))
+  // Marp deck (task 107): mount the read-only slide panel beside the editor when the doc is a
+  // deck. Re-render is driven by the existing debounced edit signal (postEdit), never a new one.
+  marpPanel?.dispose()
+  marpPanel = null
+  if (msg.options?.marp) {
+    const root =
+      activeModeElement(window.vditor)?.closest<HTMLElement>('.vditor') ?? null
+    if (root) marpPanel = mountMarpPanel(root, window.vditor.getValue())
+  }
   reportDocMode()
 }
 
 function initVditor(msg) {
   lastInitMsg = msg
+  // Marp lazy-chunk URL (task 107): the host passes the webview-resource URI for media/dist/marp.js
+  // in the init message; marp-preview.ts reads it off window when it injects the chunk <script>.
+  if (msg.marpSrc) (window as any).__vmarkdMarpSrc = msg.marpSrc
   // Gate content-visibility (main.css) to docs ≥ 100 KB (see CSS comment). Below
   // that the O(n) layout cost is negligible and the `contain-intrinsic-size` on
   // contenteditable blocks triggered blank-screen bugs in Chromium 148, so leave
@@ -501,7 +516,9 @@ function initVditor(msg) {
   }
 
   const postEdit = () => {
-    vscode.postMessage({ command: 'edit', content: serializeForHost() })
+    const content = serializeForHost()
+    vscode.postMessage({ command: 'edit', content })
+    marpPanel?.update(content)
     reportDocMode()
     syncUndoDelay()
   }
