@@ -12,11 +12,18 @@ import { offsetForSlideIndex, slideIndexForOffset } from './marp-slide-map'
 
 const PLACEHOLDER = '<div class="vmarkd-marp__error">Loading Marp…</div>'
 let api: MarpApi | null = null
+// Index of the slide currently carrying the active class. Reset on repaint (the preview re-render
+// replaces the sections with fresh, unhighlighted nodes).
+let activeIdx = -1
 
 function repaint(): void {
   const v = (window as any).vditor
   // Re-run Vditor's preview render now that the chunk is loaded (synchronous this time).
   v?.vditor?.preview?.render?.(v.vditor) ?? v?.preview?.render?.(v)
+  // The render replaces `.vditor-reset` with FRESH, unhighlighted <section> nodes. Drop the cached
+  // index so the next highlightPreviewSlide re-applies the active class to the new sections (it
+  // short-circuits on idx === activeIdx, which would otherwise be stale across the re-render).
+  activeIdx = -1
 }
 
 /** Install the gate. Idempotent. */
@@ -50,7 +57,6 @@ function previewSections(): HTMLElement[] {
   return Array.from(preview.querySelectorAll<HTMLElement>('section'))
 }
 
-let activeIdx = -1
 /** Highlight + scroll the preview deck to the slide containing `offset`. No-op if no deck shown. */
 export function highlightPreviewSlide(source: string, offset: number): void {
   const sections = previewSections()
@@ -64,7 +70,12 @@ export function highlightPreviewSlide(source: string, offset: number): void {
   activeIdx = idx
 }
 
+let deckSyncInstalled = false
 function installDeckSync(): void {
+  // installMarpPreview runs on every init (twice on the error path); guard so the delegated click
+  // listener is registered exactly once (otherwise reverse-nav fires N times per click).
+  if (deckSyncInstalled) return
+  deckSyncInstalled = true
   // Reverse-nav: click a slide in the preview → report its source offset. Delegated so it survives
   // the preview being re-rendered. (The host consumer of __vmarkdMarpNav is wired separately.)
   document.addEventListener('click', (e) => {

@@ -912,10 +912,6 @@ body.vmarkd-busy * {
   overflow: auto; /* vertical stack of slides scrolls (spec decision 8) */
   padding: 12px;
 }
-.vmarkd-marp__deck section {
-  margin: 0 auto 16px;
-  max-width: 100%;
-}
 .vmarkd-marp__error {
   color: var(--vscode-errorForeground, #c00);
   font: inherit;
@@ -935,11 +931,13 @@ body.vmarkd-marp__resizing {
   cursor: col-resize;
   user-select: none;
 }
-.vmarkd-marp__deck section {
+/* Marp deck inside Vditor's preview surface (task 107). The deck is raw Marp HTML
+   (`.marpit > section`) written into `.vditor-reset`; there is no `.vmarkd-marp__deck` wrapper. */
+.vditor-preview .vditor-reset .marpit section {
   outline: 2px solid transparent;
   transition: outline-color 0.15s;
 }
-.vmarkd-marp__deck section.vmarkd-marp__active {
+.vditor-preview .vditor-reset .marpit section.vmarkd-marp__active {
   outline-color: var(--vscode-focusBorder, #007fd4);
 }
 
