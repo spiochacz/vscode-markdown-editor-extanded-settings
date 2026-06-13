@@ -79,6 +79,7 @@
    (VS Code doesn't zebra table rows) → stripe == row bg. */
 body.markdown-body {
   --vmarkd-link: #48a0c7; /* textLink.foreground — also feeds IR link + checkbox accent */
+  --vmarkd-code-px: 3px; /* inline-code h-padding (VS Code shell `1px 3px`) — drives the WYSIWYG source-patch so all 3 surfaces match */
   --vmarkd-heading-border: rgba(255, 255, 255, 0.18);
   --vmarkd-hr-bg: rgba(255, 255, 255, 0.18);
   --vmarkd-blockquote-fg: #bbbebf; /* editor.foreground — VS Code does not mute blockquote text */
